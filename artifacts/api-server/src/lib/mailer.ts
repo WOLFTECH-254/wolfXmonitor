@@ -121,6 +121,39 @@ export async function sendDownAlert(opts: {
   }
 }
 
+export async function sendDeleteAlert(opts: {
+  toEmail: string;
+  toName: string;
+  monitorName: string;
+  monitorUrl: string;
+}): Promise<void> {
+  const { toEmail, toName, monitorName, monitorUrl } = opts;
+
+  const html = `${BRAND}${BRAND_HEADER}
+    <div style="background:#0a0a12;border:1px solid #6b728033;border-radius:6px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Monitor Removed</div>
+      <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;text-decoration:line-through;opacity:0.6;">${monitorName}</div>
+      <div style="font-size:12px;color:#6b7280;">${monitorUrl}</div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;line-height:1.7;">
+      Hey ${toName}, the monitor for <strong style="color:#d1ffd6;">${monitorName}</strong> has been permanently deleted along with all its ping history. wolfXmonitor is no longer watching this endpoint.
+    </div>
+  ${BRAND_FOOTER}`;
+
+  try {
+    await sendEmail({
+      sender: { name: "wolfXmonitor", email: "notifications@wolfxmonitor.app" },
+      to: [{ email: toEmail, name: toName }],
+      subject: `Monitor deleted: ${monitorName}`,
+      htmlContent: html,
+    });
+    logger.info({ toEmail, monitorName }, "Delete alert email sent");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err: msg, toEmail, monitorName }, "Failed to send delete alert email");
+  }
+}
+
 export async function sendRecoveryAlert(opts: {
   toEmail: string;
   toName: string;

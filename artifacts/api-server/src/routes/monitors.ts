@@ -15,7 +15,7 @@ import {
 import { pingUrl } from "../lib/pinger";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
 import { requireAuth } from "../middlewares/auth";
-import { sendDownAlert, sendWelcomeAlert } from "../lib/mailer";
+import { sendDownAlert, sendWelcomeAlert, sendDeleteAlert } from "../lib/mailer";
 
 const router = Router();
 
@@ -112,6 +112,17 @@ router.delete("/monitors/:id", async (req, res) => {
   }
   unscheduleMonitor(id);
   await db.delete(monitorsTable).where(eq(monitorsTable.id, id));
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, monitor.userId!));
+  if (user?.notificationsEnabled) {
+    sendDeleteAlert({
+      toEmail: user.notificationEmail ?? user.email,
+      toName: user.name,
+      monitorName: monitor.name,
+      monitorUrl: monitor.url,
+    }).catch(() => {});
+  }
+
   res.status(204).send();
 });
 
