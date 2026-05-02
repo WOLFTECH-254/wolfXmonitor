@@ -9,7 +9,7 @@ function getApiKey(): string | undefined {
 
 const SENDER = {
   name: process.env.BREVO_SENDER_NAME ?? "wolfXmonitor",
-  email: process.env.BREVO_SENDER_EMAIL ?? "777wolftech@gmail.com",
+  email: process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space",
 };
 
 async function sendEmail(payload: object): Promise<void> {
