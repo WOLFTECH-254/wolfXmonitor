@@ -10,6 +10,22 @@ import { useToast } from "@/hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+const COUNTRY_NAMES: Record<string, string> = {
+  NG: "Nigeria", GH: "Ghana", KE: "Kenya", ZA: "South Africa",
+  US: "United States", GB: "United Kingdom", CA: "Canada", AU: "Australia",
+  DE: "Germany", FR: "France", IN: "India", BR: "Brazil",
+  MX: "Mexico", JP: "Japan", SG: "Singapore", AE: "UAE",
+  RW: "Rwanda", TZ: "Tanzania", UG: "Uganda", ET: "Ethiopia",
+  EG: "Egypt", MA: "Morocco", SN: "Senegal",
+};
+
+function countryFlag(code?: string | null): string {
+  if (!code || code.length !== 2 || code === "OT") return "🌍";
+  return String.fromCodePoint(
+    ...code.toUpperCase().split("").map((c) => 0x1F1E6 + c.charCodeAt(0) - 65)
+  );
+}
+
 async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`${BASE}${path}`, { credentials: "include", ...opts });
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
@@ -558,7 +574,14 @@ export default function Admin() {
                   <tr key={u.id} className="hover:bg-white/[0.02] group">
                     <td className="px-4 py-3 font-bold text-foreground">{u.name}{u.isAdmin && <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-widest bg-primary/10 text-primary border border-primary/25"><ShieldCheck className="w-2.5 h-2.5" />ADMIN</span>}</td>
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{u.country ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {u.country ? (
+                        <span className="inline-flex items-center gap-1.5" title={COUNTRY_NAMES[u.country.toUpperCase()] ?? u.country}>
+                          <span className="text-base leading-none">{countryFlag(u.country)}</span>
+                          <span className="font-mono text-[11px] text-muted-foreground">{u.country.toUpperCase()}</span>
+                        </span>
+                      ) : <span className="text-muted-foreground/40">—</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <select
                         value={u.plan ?? "free"}
