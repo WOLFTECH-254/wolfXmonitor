@@ -8,6 +8,8 @@ export const usersTable = pgTable("users", {
   notificationEmail: text("notification_email"),
   notificationsEnabled: boolean("notifications_enabled").notNull().default(true),
   isAdmin: boolean("is_admin").notNull().default(false),
+  country: text("country"),
+  plan: text("plan").notNull().default("free"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

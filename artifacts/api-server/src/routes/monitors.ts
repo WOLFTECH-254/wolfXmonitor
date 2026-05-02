@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, monitorsTable, pingsTable, usersTable } from "@workspace/db";
+import { db, monitorsTable, pingsTable, usersTable, settingsTable } from "@workspace/db";
 import { eq, desc, count, and, gte, sql } from "drizzle-orm";
 import {
   CreateMonitorBody,
@@ -19,9 +19,7 @@ import { sendDownAlert, sendWelcomeAlert, sendDeleteAlert } from "../lib/mailer"
 
 const router = Router();
 
-router.use(requireAuth);
-
-router.get("/monitors", async (req, res) => {
+router.get("/monitors", requireAuth, async (req, res) => {
   const monitors = await db
     .select()
     .from(monitorsTable)
@@ -30,8 +28,20 @@ router.get("/monitors", async (req, res) => {
   res.json(monitors);
 });
 
-router.post("/monitors", async (req, res) => {
+router.post("/monitors", requireAuth, async (req, res) => {
   const body = CreateMonitorBody.parse(req.body);
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
+  if (user?.plan !== "pro") {
+    const settings = await db.select().from(settingsTable);
+    const freeLimit = Number(settings.find(s => s.key === "free_monitor_limit")?.value ?? "5");
+    const [{ total }] = await db.select({ total: count() }).from(monitorsTable).where(eq(monitorsTable.userId, req.session.userId!));
+    if (Number(total) >= freeLimit) {
+      res.status(403).json({ error: `Free plan limit reached (${freeLimit} monitors). Upgrade to Pro for unlimited monitors.`, limitReached: true });
+      return;
+    }
+  }
+
   const [monitor] = await db
     .insert(monitorsTable)
     .values({
@@ -46,7 +56,6 @@ router.post("/monitors", async (req, res) => {
     scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes);
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
   if (user?.notificationsEnabled) {
     const emailTo = user.notificationEmail ?? user.email;
     sendWelcomeAlert({
@@ -61,7 +70,7 @@ router.post("/monitors", async (req, res) => {
   res.status(201).json(monitor);
 });
 
-router.get("/monitors/:id", async (req, res) => {
+router.get("/monitors/:id", requireAuth, async (req, res) => {
   const { id } = GetMonitorParams.parse({ id: Number(req.params.id) });
   const [monitor] = await db
     .select()
@@ -74,7 +83,7 @@ router.get("/monitors/:id", async (req, res) => {
   res.json(monitor);
 });
 
-router.put("/monitors/:id", async (req, res) => {
+router.put("/monitors/:id", requireAuth, async (req, res) => {
   const { id } = UpdateMonitorParams.parse({ id: Number(req.params.id) });
   const body = UpdateMonitorBody.parse(req.body);
   const updates: Partial<typeof monitorsTable.$inferInsert> = {};
@@ -100,7 +109,7 @@ router.put("/monitors/:id", async (req, res) => {
   res.json(monitor);
 });
 
-router.delete("/monitors/:id", async (req, res) => {
+router.delete("/monitors/:id", requireAuth, async (req, res) => {
   const { id } = DeleteMonitorParams.parse({ id: Number(req.params.id) });
   const [monitor] = await db
     .select()
@@ -126,7 +135,7 @@ router.delete("/monitors/:id", async (req, res) => {
   res.status(204).send();
 });
 
-router.get("/monitors/:id/pings", async (req, res) => {
+router.get("/monitors/:id/pings", requireAuth, async (req, res) => {
   const { id } = GetMonitorPingsParams.parse({ id: Number(req.params.id) });
   const query = GetMonitorPingsQueryParams.parse(req.query);
   const limit = query.limit ?? 50;
@@ -139,7 +148,7 @@ router.get("/monitors/:id/pings", async (req, res) => {
   res.json(pings);
 });
 
-router.get("/monitors/:id/stats", async (req, res) => {
+router.get("/monitors/:id/stats", requireAuth, async (req, res) => {
   const { id } = GetMonitorStatsParams.parse({ id: Number(req.params.id) });
 
   const [totals] = await db
@@ -179,7 +188,7 @@ router.get("/monitors/:id/stats", async (req, res) => {
   });
 });
 
-router.post("/monitors/:id/ping", async (req, res) => {
+router.post("/monitors/:id/ping", requireAuth, async (req, res) => {
   const { id } = TriggerPingParams.parse({ id: Number(req.params.id) });
   const [monitor] = await db
     .select()
@@ -222,7 +231,7 @@ router.post("/monitors/:id/ping", async (req, res) => {
   res.json(ping);
 });
 
-router.get("/dashboard/summary", async (req, res) => {
+router.get("/dashboard/summary", requireAuth, async (req, res) => {
   const monitors = await db
     .select()
     .from(monitorsTable)

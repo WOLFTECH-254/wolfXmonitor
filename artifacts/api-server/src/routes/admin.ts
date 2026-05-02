@@ -1,14 +1,13 @@
 import { Router } from "express";
-import { db, monitorsTable, pingsTable, usersTable, settingsTable } from "@workspace/db";
+import { db, monitorsTable, pingsTable, usersTable, settingsTable, paymentsTable } from "@workspace/db";
 import { desc, count, eq, sql } from "drizzle-orm";
 import axios from "axios";
 import { requireAdmin } from "../middlewares/admin";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
 
 const router = Router();
-router.use(requireAdmin);
 
-router.get("/admin/stats", async (_req, res) => {
+router.get("/admin/stats", requireAdmin, async (_req, res) => {
   const [userCount] = await db.select({ count: count() }).from(usersTable);
   const [monitorCount] = await db.select({ count: count() }).from(monitorsTable);
   const [pingCount] = await db.select({ count: count() }).from(pingsTable);
@@ -38,7 +37,7 @@ router.get("/admin/stats", async (_req, res) => {
   });
 });
 
-router.get("/admin/users", async (_req, res) => {
+router.get("/admin/users", requireAdmin, async (_req, res) => {
   const users = await db.select().from(usersTable).orderBy(desc(usersTable.createdAt));
   const monitorCounts = await db
     .select({ userId: monitorsTable.userId, count: count() })
@@ -60,7 +59,7 @@ router.get("/admin/users", async (_req, res) => {
   res.json(result);
 });
 
-router.get("/admin/monitors", async (_req, res) => {
+router.get("/admin/monitors", requireAdmin, async (_req, res) => {
   const monitors = await db
     .select({
       id: monitorsTable.id,
@@ -83,7 +82,7 @@ router.get("/admin/monitors", async (_req, res) => {
   res.json(monitors);
 });
 
-router.get("/admin/activity", async (_req, res) => {
+router.get("/admin/activity", requireAdmin, async (_req, res) => {
   const activity = await db
     .select({
       id: pingsTable.id,
@@ -106,7 +105,7 @@ router.get("/admin/activity", async (_req, res) => {
   res.json(activity);
 });
 
-router.patch("/admin/monitors/:id/toggle", async (req, res) => {
+router.patch("/admin/monitors/:id/toggle", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const [monitor] = await db.select().from(monitorsTable).where(eq(monitorsTable.id, id));
   if (!monitor) { res.status(404).json({ error: "Not found" }); return; }
@@ -121,14 +120,14 @@ router.patch("/admin/monitors/:id/toggle", async (req, res) => {
   res.json(updated);
 });
 
-router.delete("/admin/monitors/:id", async (req, res) => {
+router.delete("/admin/monitors/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   unscheduleMonitor(id);
   await db.delete(monitorsTable).where(eq(monitorsTable.id, id));
   res.status(204).send();
 });
 
-router.patch("/admin/users/:id/toggle-admin", async (req, res) => {
+router.patch("/admin/users/:id/toggle-admin", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   if (!user) { res.status(404).json({ error: "Not found" }); return; }
@@ -140,15 +139,45 @@ router.patch("/admin/users/:id/toggle-admin", async (req, res) => {
   res.json({ id: updated.id, isAdmin: updated.isAdmin });
 });
 
-router.delete("/admin/users/:id", async (req, res) => {
+router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.status(204).send();
 });
 
+// ── Payments ────────────────────────────────────────────────────────────────
+
+router.get("/admin/payments", requireAdmin, async (_req, res) => {
+  const payments = await db
+    .select({
+      id: paymentsTable.id,
+      paystackReference: paymentsTable.paystackReference,
+      amount: paymentsTable.amount,
+      currency: paymentsTable.currency,
+      status: paymentsTable.status,
+      plan: paymentsTable.plan,
+      createdAt: paymentsTable.createdAt,
+      userId: paymentsTable.userId,
+      userName: usersTable.name,
+      userEmail: usersTable.email,
+    })
+    .from(paymentsTable)
+    .leftJoin(usersTable, eq(paymentsTable.userId, usersTable.id))
+    .orderBy(desc(paymentsTable.createdAt))
+    .limit(100);
+  res.json(payments);
+});
+
 // ── Email / Brevo settings ─────────────────────────────────────────────────
 
-router.get("/admin/settings/email", async (_req, res) => {
+const upsertSetting = async (key: string, value: string) => {
+  await db
+    .insert(settingsTable)
+    .values({ key, value })
+    .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: new Date() } });
+};
+
+router.get("/admin/settings/email", requireAdmin, async (_req, res) => {
   const rows = await db.select().from(settingsTable);
   const map = new Map(rows.map((r) => [r.key, r.value]));
 
@@ -165,28 +194,54 @@ router.get("/admin/settings/email", async (_req, res) => {
   });
 });
 
-router.put("/admin/settings/email", async (req, res) => {
+router.put("/admin/settings/email", requireAdmin, async (req, res) => {
   const { brevoApiKey, senderEmail, senderName } = req.body as {
     brevoApiKey?: string; senderEmail?: string; senderName?: string;
   };
-
-  const upsert = async (key: string, value: string) => {
-    await db
-      .insert(settingsTable)
-      .values({ key, value })
-      .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: new Date() } });
-  };
-
   if (brevoApiKey && brevoApiKey.trim() && !brevoApiKey.includes("•")) {
-    await upsert("brevo_api_key", brevoApiKey.trim());
+    await upsertSetting("brevo_api_key", brevoApiKey.trim());
   }
-  if (senderEmail?.trim()) await upsert("brevo_sender_email", senderEmail.trim());
-  if (senderName?.trim()) await upsert("brevo_sender_name", senderName.trim());
-
+  if (senderEmail?.trim()) await upsertSetting("brevo_sender_email", senderEmail.trim());
+  if (senderName?.trim()) await upsertSetting("brevo_sender_name", senderName.trim());
   res.json({ ok: true });
 });
 
-router.post("/admin/settings/email/test", async (req, res) => {
+// ── Paystack / Billing settings ─────────────────────────────────────────────
+
+router.get("/admin/settings/billing", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+
+  const rawSecret = map.get("paystack_secret_key") ?? "";
+  const rawPublic = map.get("paystack_public_key") ?? "";
+  const maskedSecret = rawSecret.length > 8
+    ? `${"•".repeat(rawSecret.length - 4)}${rawSecret.slice(-4)}`
+    : rawSecret ? "••••" : "";
+
+  res.json({
+    paystackSecretKeySet: rawSecret.length > 0,
+    paystackSecretKeyMasked: maskedSecret,
+    paystackPublicKey: rawPublic,
+    planPriceUsd: Number(map.get("plan_price_usd") ?? "10"),
+    freeMonitorLimit: Number(map.get("free_monitor_limit") ?? "5"),
+  });
+});
+
+router.put("/admin/settings/billing", requireAdmin, async (req, res) => {
+  const { paystackSecretKey, paystackPublicKey, planPriceUsd, freeMonitorLimit } = req.body as {
+    paystackSecretKey?: string; paystackPublicKey?: string;
+    planPriceUsd?: number; freeMonitorLimit?: number;
+  };
+  if (paystackSecretKey && paystackSecretKey.trim() && !paystackSecretKey.includes("•")) {
+    await upsertSetting("paystack_secret_key", paystackSecretKey.trim());
+  }
+  if (paystackPublicKey?.trim()) await upsertSetting("paystack_public_key", paystackPublicKey.trim());
+  if (planPriceUsd !== undefined && planPriceUsd > 0) await upsertSetting("plan_price_usd", String(planPriceUsd));
+  if (freeMonitorLimit !== undefined && freeMonitorLimit > 0) await upsertSetting("free_monitor_limit", String(freeMonitorLimit));
+  res.json({ ok: true });
+});
+
+router.post("/admin/settings/email/test", requireAdmin, async (req, res) => {
   const rows = await db.select().from(settingsTable);
   const map = new Map(rows.map((r) => [r.key, r.value]));
 

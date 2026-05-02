@@ -3,13 +3,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useCreateMonitor, getListMonitorsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
-import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import { Link } from "wouter";
+import { ArrowLeft, ArrowRight, Crown } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -24,6 +24,7 @@ export default function MonitorNew() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const createMonitor = useCreateMonitor();
+  const [limitReached, setLimitReached] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -35,6 +36,7 @@ export default function MonitorNew() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    setLimitReached(false);
     createMonitor.mutate({ data: { ...values, active: true } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListMonitorsQueryKey() });
@@ -43,8 +45,13 @@ export default function MonitorNew() {
         setLocation("/dashboard");
       },
       onError: (err: unknown) => {
-        const msg = err instanceof Error ? err.message : "An error occurred.";
-        toast({ variant: "destructive", title: "Error creating monitor", description: msg });
+        const body = (err as { response?: { data?: { limitReached?: boolean; error?: string } } }).response?.data;
+        if (body?.limitReached) {
+          setLimitReached(true);
+        } else {
+          const msg = err instanceof Error ? err.message : "An error occurred.";
+          toast({ variant: "destructive", title: "Error creating monitor", description: msg });
+        }
       }
     });
   }
@@ -70,6 +77,21 @@ export default function MonitorNew() {
             Configure a new service to monitor and keep alive.
           </p>
         </div>
+
+        {/* Limit reached banner */}
+        {limitReached && (
+          <div className="border border-primary/40 bg-primary/5 rounded p-5 flex items-center justify-between gap-4">
+            <div>
+              <div className="font-display text-xl text-primary uppercase tracking-wide leading-none mb-1">Free Plan Limit Reached</div>
+              <p className="font-mono text-xs text-muted-foreground">You've hit the maximum monitors on the Free plan. Upgrade to Pro for unlimited monitors.</p>
+            </div>
+            <Link href="/upgrade">
+              <button className="flex items-center gap-2 font-mono text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-4 py-2.5 rounded font-bold tracking-wider whitespace-nowrap">
+                <Crown className="w-3.5 h-3.5" /> Upgrade to Pro
+              </button>
+            </Link>
+          </div>
+        )}
 
         {/* Form card */}
         <div className="border border-border bg-card rounded p-8 card-hover">

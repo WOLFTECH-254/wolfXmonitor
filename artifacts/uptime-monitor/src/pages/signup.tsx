@@ -3,12 +3,29 @@ import { Link, useLocation } from "wouter";
 import { Zap, ArrowRight, Eye, EyeOff, Globe, Clock, BarChart2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
+const COUNTRIES = [
+  { code: "NG", name: "Nigeria" }, { code: "GH", name: "Ghana" },
+  { code: "KE", name: "Kenya" }, { code: "ZA", name: "South Africa" },
+  { code: "US", name: "United States" }, { code: "GB", name: "United Kingdom" },
+  { code: "CA", name: "Canada" }, { code: "AU", name: "Australia" },
+  { code: "DE", name: "Germany" }, { code: "FR", name: "France" },
+  { code: "IN", name: "India" }, { code: "BR", name: "Brazil" },
+  { code: "MX", name: "Mexico" }, { code: "JP", name: "Japan" },
+  { code: "SG", name: "Singapore" }, { code: "AE", name: "UAE" },
+  { code: "RW", name: "Rwanda" }, { code: "TZ", name: "Tanzania" },
+  { code: "UG", name: "Uganda" }, { code: "ET", name: "Ethiopia" },
+  { code: "EG", name: "Egypt" }, { code: "MA", name: "Morocco" },
+  { code: "NG", name: "Nigeria" }, { code: "SN", name: "Senegal" },
+  { code: "OTHER", name: "Other" },
+];
+
 export default function SignUp() {
   const [, setLocation] = useLocation();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [country, setCountry] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +36,7 @@ export default function SignUp() {
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true);
     try {
-      await register(name, email, password);
+      await register(name, email, password, country || undefined);
       setLocation("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -30,7 +47,6 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
-      {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
@@ -58,12 +74,11 @@ export default function SignUp() {
             <p className="font-mono text-muted-foreground text-sm leading-relaxed mb-12 max-w-sm">
               Free forever. Add your Render, Railway, or Fly.io endpoints and keep them alive around the clock.
             </p>
-
             <div className="grid grid-cols-3 border border-border bg-card/50 rounded">
               {[
                 { value: "99.9%", label: "Uptime SLA" },
                 { value: "<30s", label: "Detection" },
-                { value: "Free", label: "Forever" },
+                { value: "Free", label: "To start" },
               ].map((s, i) => (
                 <div key={i} className="flex flex-col items-center py-5 border-r border-border last:border-r-0">
                   <div className="font-display text-3xl text-foreground leading-none">{s.value}</div>
@@ -71,7 +86,6 @@ export default function SignUp() {
                 </div>
               ))}
             </div>
-
             <div className="mt-10 space-y-4">
               {[
                 { icon: Globe, text: "Add any HTTP/HTTPS endpoint" },
@@ -108,43 +122,38 @@ export default function SignUp() {
 
               <div className="space-y-2">
                 <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Name</label>
-                <input
-                  type="text"
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
-                  required
-                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
-                />
+                <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name" required
+                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors" />
               </div>
 
               <div className="space-y-2">
                 <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Email</label>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
-                />
-                <p className="font-mono text-[10px] text-muted-foreground">Down alerts will be sent to this address.</p>
+                <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com" required
+                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors" />
+                <p className="font-mono text-[10px] text-muted-foreground">Down alerts will be sent here.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Country</label>
+                <select value={country} onChange={(e) => setCountry(e.target.value)}
+                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground focus:outline-none focus:border-primary/60 transition-colors appearance-none">
+                  <option value="">Select your country</option>
+                  {COUNTRIES.filter((c, i, arr) => arr.findIndex(x => x.code === c.code) === i).map(c => (
+                    <option key={c.code} value={c.code}>{c.name}</option>
+                  ))}
+                </select>
+                <p className="font-mono text-[10px] text-muted-foreground">Used to show pricing in your currency.</p>
               </div>
 
               <div className="space-y-2">
                 <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Password</label>
                 <div className="relative">
-                  <input
-                    type={showPass ? "text" : "password"}
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min. 8 characters"
-                    required
-                    className="w-full bg-card border border-border rounded px-4 py-3 pr-11 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
-                  />
+                  <input type={showPass ? "text" : "password"} autoComplete="new-password"
+                    value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min. 8 characters" required
+                    className="w-full bg-card border border-border rounded px-4 py-3 pr-11 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors" />
                   <button type="button" onClick={() => setShowPass(!showPass)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -152,11 +161,8 @@ export default function SignUp() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all py-3.5 rounded font-bold tracking-wider group mt-2"
-              >
+              <button type="submit" disabled={loading}
+                className="w-full flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all py-3.5 rounded font-bold tracking-wider group mt-2">
                 {loading ? "Creating account..." : "Create Account"}
                 {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
               </button>

@@ -10,6 +10,8 @@ export interface AuthUser {
   notificationEmail: string | null;
   notificationsEnabled: boolean;
   isAdmin: boolean;
+  country: string | null;
+  plan: string;
 }
 
 async function fetchMe(): Promise<AuthUser | null> {
@@ -33,12 +35,12 @@ async function apiLogin(email: string, password: string): Promise<AuthUser> {
   return res.json();
 }
 
-async function apiRegister(name: string, email: string, password: string): Promise<AuthUser> {
+async function apiRegister(name: string, email: string, password: string, country?: string): Promise<AuthUser> {
   const res = await fetch(`${BASE}/api/auth/register`, {
     method: "POST",
     credentials: "include",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, password, country }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -55,7 +57,7 @@ interface AuthContext {
   user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, country?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -78,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: ({ name, email, password }: { name: string; email: string; password: string }) =>
-      apiRegister(name, email, password),
+    mutationFn: ({ name, email, password, country }: { name: string; email: string; password: string; country?: string }) =>
+      apiRegister(name, email, password, country),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth-me"] }),
   });
 
@@ -97,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         login: async (email, password) => { await loginMutation.mutateAsync({ email, password }); },
-        register: async (name, email, password) => { await registerMutation.mutateAsync({ name, email, password }); },
+        register: async (name, email, password, country) => { await registerMutation.mutateAsync({ name, email, password, country }); },
         logout: async () => { await logoutMutation.mutateAsync(); },
       }}
     >

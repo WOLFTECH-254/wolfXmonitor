@@ -14,11 +14,15 @@ function safeUser(u: typeof usersTable.$inferSelect) {
     notificationEmail: u.notificationEmail,
     notificationsEnabled: u.notificationsEnabled,
     isAdmin: u.isAdmin,
+    country: u.country,
+    plan: u.plan,
   };
 }
 
 router.post("/auth/register", async (req, res) => {
-  const { name, email, password } = req.body as { name?: string; email?: string; password?: string };
+  const { name, email, password, country } = req.body as {
+    name?: string; email?: string; password?: string; country?: string;
+  };
   if (!name || !email || !password) {
     res.status(400).json({ error: "Name, email and password are required" });
     return;
@@ -43,6 +47,8 @@ router.post("/auth/register", async (req, res) => {
     notificationEmail: email.toLowerCase().trim(),
     notificationsEnabled: true,
     isAdmin: isFirstUser,
+    country: country?.trim() ?? null,
+    plan: "free",
   }).returning();
   req.session.userId = user.id;
   res.status(201).json(safeUser(user));
