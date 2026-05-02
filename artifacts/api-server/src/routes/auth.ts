@@ -5,6 +5,7 @@ import { usersTable, securityEventsTable } from "@workspace/db";
 import { eq, count } from "drizzle-orm";
 import { getClientIp } from "../middlewares/ip-block";
 import { sendSecurityAlert } from "../lib/security-mailer";
+import { sendSignupWelcomeEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -84,6 +85,7 @@ router.post("/auth/register", async (req, res) => {
     plan: "free",
   }).returning();
   req.session.userId = user.id;
+  sendSignupWelcomeEmail({ toEmail: user.email, toName: user.name }).catch(() => {});
   res.status(201).json(safeUser(user));
 });
 

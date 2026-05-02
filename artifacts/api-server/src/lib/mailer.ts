@@ -66,6 +66,45 @@ const BRAND_FOOTER = `
   </div>
 </div>`;
 
+export async function sendSignupWelcomeEmail(opts: {
+  toEmail: string;
+  toName: string;
+}): Promise<void> {
+  const { toEmail, toName } = opts;
+  const config = await getEmailConfig();
+  if (!config) return;
+
+  const html = `${BRAND}${BRAND_HEADER}
+    <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Welcome aboard</div>
+      <div style="font-size:22px;font-weight:700;color:#ffffff;margin-bottom:8px;">Hey ${toName} 👋</div>
+      <div style="font-size:13px;color:#d1ffd6;line-height:1.7;">
+        Your wolfXmonitor account is ready. The wolf is now on guard — add your first monitor and we'll watch it every minute, 24/7.
+      </div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;line-height:1.8;">
+      <div style="margin-bottom:6px;"><span style="color:#22c55e;">✓</span> Real-time uptime monitoring</div>
+      <div style="margin-bottom:6px;"><span style="color:#22c55e;">✓</span> Instant email alerts when things go wrong</div>
+      <div style="margin-bottom:6px;"><span style="color:#22c55e;">✓</span> Response time tracking & history</div>
+      <div style="margin-bottom:16px;"><span style="color:#22c55e;">✓</span> Free plan — no credit card needed</div>
+      <a href="https://monitor.xwolf.space/dashboard" style="display:inline-block;background:#22c55e;color:#000;font-weight:700;font-size:12px;padding:10px 24px;border-radius:4px;text-decoration:none;letter-spacing:1px;text-transform:uppercase;">Go to Dashboard →</a>
+    </div>
+  ${BRAND_FOOTER}`;
+
+  try {
+    await sendEmail(config, {
+      sender: { name: config.senderName, email: config.senderEmail },
+      to: [{ email: toEmail, name: toName }],
+      subject: `Welcome to wolfXmonitor, ${toName}!`,
+      htmlContent: html,
+    });
+    logger.info({ toEmail }, "Signup welcome email sent");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err: msg, toEmail }, "Failed to send signup welcome email");
+  }
+}
+
 export async function sendWelcomeAlert(opts: {
   toEmail: string;
   toName: string;

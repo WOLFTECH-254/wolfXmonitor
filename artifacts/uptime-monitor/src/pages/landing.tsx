@@ -89,7 +89,18 @@ function useCountUp(target: number, duration = 2000) {
   return { value, sectionRef };
 }
 
+interface OgMeta { ogTitle: string; ogDescription: string; ogImage: string; ogUrl: string; }
+
 export default function Landing() {
+  const { data: ogMeta } = useQuery<OgMeta>({
+    queryKey: ["og-meta"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/settings/og`);
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: realStats = [] } = useQuery<CountryStat[]>({
     queryKey: ["country-stats"],
     queryFn: async () => {
@@ -123,11 +134,14 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-x-hidden">
       <Helmet>
-        <title>wolfXmonitor — Know When Your Sites Go Down</title>
-        <meta name="description" content="Real-time uptime monitoring with instant alerts. Free & Pro plans. 100+ wolves watching from 20+ countries." />
-        <meta property="og:title" content="wolfXmonitor — Know When Your Sites Go Down" />
-        <meta property="og:description" content="Real-time uptime monitoring with instant alerts. Free & Pro plans. 100+ wolves watching from 20+ countries." />
-        <meta property="og:url" content="https://wolfxmonitor.replit.app/" />
+        <title>{ogMeta?.ogTitle ?? "wolfXmonitor — Know When Your Sites Go Down"}</title>
+        <meta name="description" content={ogMeta?.ogDescription ?? "Real-time uptime monitoring with instant alerts. Free & Pro plans."} />
+        <meta property="og:title" content={ogMeta?.ogTitle ?? "wolfXmonitor — Know When Your Sites Go Down"} />
+        <meta property="og:description" content={ogMeta?.ogDescription ?? "Real-time uptime monitoring with instant alerts. Free & Pro plans."} />
+        <meta property="og:url" content={ogMeta?.ogUrl ?? "https://monitor.xwolf.space"} />
+        {ogMeta?.ogImage && <meta property="og:image" content={ogMeta.ogImage} />}
+        {ogMeta?.ogImage && <meta name="twitter:card" content="summary_large_image" />}
+        {ogMeta?.ogImage && <meta name="twitter:image" content={ogMeta.ogImage} />}
       </Helmet>
 
       {/* NAV */}

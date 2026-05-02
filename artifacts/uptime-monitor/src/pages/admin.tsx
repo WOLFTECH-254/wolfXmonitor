@@ -426,6 +426,112 @@ function PlansSection() {
   );
 }
 
+// ── OG Metadata Section ───────────────────────────────────────────────────────
+interface OgSettings { ogTitle: string; ogDescription: string; ogImage: string; ogUrl: string; }
+
+function OgMetaSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [ogTitle, setOgTitle] = useState("");
+  const [ogDescription, setOgDescription] = useState("");
+  const [ogImage, setOgImage] = useState("");
+  const [ogUrl, setOgUrl] = useState("");
+
+  const { data } = useQuery<OgSettings>({ queryKey: ["admin-og-settings"], queryFn: () => apiFetch("/api/admin/settings/og") });
+
+  useEffect(() => {
+    if (data) {
+      setOgTitle(data.ogTitle ?? "");
+      setOgDescription(data.ogDescription ?? "");
+      setOgImage(data.ogImage ?? "");
+      setOgUrl(data.ogUrl ?? "");
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => apiFetch("/api/admin/settings/og", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ogTitle, ogDescription, ogImage, ogUrl }) }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-og-settings"] }); toast({ title: "OG metadata saved" }); },
+    onError: () => toast({ variant: "destructive", title: "Failed to save" }),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">OG / Social Preview</h3>
+        <p className="font-mono text-[11px] text-muted-foreground mt-1">Controls how your site looks when shared on Twitter, WhatsApp, LinkedIn, etc.</p>
+      </div>
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">OG Title</label>
+          <input type="text" value={ogTitle} onChange={(e) => setOgTitle(e.target.value)} placeholder="wolfXmonitor — Know When Your Sites Go Down"
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">OG Description</label>
+          <textarea value={ogDescription} onChange={(e) => setOgDescription(e.target.value)} rows={2} placeholder="Real-time uptime monitoring with instant alerts..."
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors resize-none" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">OG Image URL</label>
+          <input type="url" value={ogImage} onChange={(e) => setOgImage(e.target.value)} placeholder="https://monitor.xwolf.space/og-image.png"
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+          <p className="font-mono text-[10px] text-muted-foreground">Paste a direct image URL (1200×630 recommended). Leave empty to use no preview image.</p>
+        </div>
+        {ogImage && (
+          <div className="border border-border rounded overflow-hidden">
+            <img src={ogImage} alt="OG preview" className="w-full max-h-48 object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Canonical URL</label>
+          <input type="url" value={ogUrl} onChange={(e) => setOgUrl(e.target.value)} placeholder="https://monitor.xwolf.space"
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+        </div>
+        <Button onClick={() => save.mutate()} disabled={save.isPending} className="font-mono text-xs uppercase tracking-widest">
+          {save.isPending ? "Saving…" : "Save OG Settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Security Notification Settings ────────────────────────────────────────────
+interface SecurityNotifSettings { securityAlertEmail: string; }
+
+function SecurityNotifSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState("");
+
+  const { data } = useQuery<SecurityNotifSettings>({ queryKey: ["admin-security-settings"], queryFn: () => apiFetch("/api/admin/settings/security") });
+
+  useEffect(() => { if (data) setEmail(data.securityAlertEmail ?? ""); }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => apiFetch("/api/admin/settings/security", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ securityAlertEmail: email }) }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-security-settings"] }); toast({ title: "Security alert email updated" }); },
+    onError: () => toast({ variant: "destructive", title: "Failed to save" }),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">Security Notifications</h3>
+        <p className="font-mono text-[11px] text-muted-foreground mt-1">Email address that receives brute force, blocked IP, and suspicious activity alerts.</p>
+      </div>
+      <div className="space-y-1.5">
+        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Security Alert Email</label>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com"
+          className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+        <p className="font-mono text-[10px] text-muted-foreground">Alerts are rate-limited (max 1 per event type per IP every 5 min) to avoid spam.</p>
+      </div>
+      <Button onClick={() => save.mutate()} disabled={save.isPending || !email.trim()} className="font-mono text-xs uppercase tracking-widest">
+        {save.isPending ? "Saving…" : "Save Alert Email"}
+      </Button>
+    </div>
+  );
+}
+
 // ── Main Admin Component ──────────────────────────────────────────────────────
 export default function Admin() {
   const { user, isLoading } = useAuth();
@@ -842,6 +948,12 @@ export default function Admin() {
             </div>
             <div className="border border-border bg-card rounded p-6">
               <FooterSection />
+            </div>
+            <div className="border border-border bg-card rounded p-6">
+              <OgMetaSection />
+            </div>
+            <div className="border border-border bg-card rounded p-6">
+              <SecurityNotifSection />
             </div>
           </div>
         )}

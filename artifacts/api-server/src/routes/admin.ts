@@ -355,6 +355,61 @@ router.put("/admin/settings/site", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── OG / Social metadata settings ────────────────────────────────────────────
+
+router.get("/settings/og", async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json({
+    ogTitle:       map.get("og_title")       ?? "wolfXmonitor — Know When Your Sites Go Down",
+    ogDescription: map.get("og_description") ?? "Real-time uptime monitoring with instant alerts. Free & Pro plans.",
+    ogImage:       map.get("og_image")       ?? "",
+    ogUrl:         map.get("og_url")         ?? "https://monitor.xwolf.space",
+  });
+});
+
+router.get("/admin/settings/og", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json({
+    ogTitle:       map.get("og_title")       ?? "wolfXmonitor — Know When Your Sites Go Down",
+    ogDescription: map.get("og_description") ?? "Real-time uptime monitoring with instant alerts. Free & Pro plans.",
+    ogImage:       map.get("og_image")       ?? "",
+    ogUrl:         map.get("og_url")         ?? "https://monitor.xwolf.space",
+  });
+});
+
+router.put("/admin/settings/og", requireAdmin, async (req, res) => {
+  const { ogTitle, ogDescription, ogImage, ogUrl } = req.body as {
+    ogTitle?: string; ogDescription?: string; ogImage?: string; ogUrl?: string;
+  };
+  if (ogTitle    !== undefined) await upsertSetting("og_title",       ogTitle.trim());
+  if (ogDescription !== undefined) await upsertSetting("og_description", ogDescription.trim());
+  if (ogImage    !== undefined) await upsertSetting("og_image",       ogImage.trim());
+  if (ogUrl      !== undefined) await upsertSetting("og_url",         ogUrl.trim());
+  res.json({ ok: true });
+});
+
+// ── Security notification settings ────────────────────────────────────────────
+
+router.get("/admin/settings/security", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json({
+    securityAlertEmail: map.get("security_alert_email") ?? "777wolfsilent8@gmail.com",
+  });
+});
+
+router.put("/admin/settings/security", requireAdmin, async (req, res) => {
+  const { securityAlertEmail } = req.body as { securityAlertEmail?: string };
+  if (securityAlertEmail?.trim()) {
+    await upsertSetting("security_alert_email", securityAlertEmail.trim());
+  }
+  res.json({ ok: true });
+});
+
+// ── Email test ────────────────────────────────────────────────────────────────
+
 router.post("/admin/settings/email/test", requireAdmin, async (req, res) => {
   const rows = await db.select().from(settingsTable);
   const map = new Map(rows.map((r) => [r.key, r.value]));

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { securityEventsTable, blockedIpsTable } from "@workspace/db";
-import { desc, eq, and, ne } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/admin";
 import { invalidateIpCache } from "../middlewares/ip-block";
 
