@@ -1,16 +1,36 @@
 import { Link, useLocation } from "wouter";
-import { Radio, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard, Activity, Globe } from "lucide-react";
+import { Radio, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard, Globe, ChevronDown, ChevronRight, Activity, Server, Users, CreditCard, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from "react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
+  const isOnAdmin = location.startsWith("/admin");
+  const [adminOpen, setAdminOpen] = useState(isOnAdmin);
+
+  useEffect(() => {
+    if (isOnAdmin) setAdminOpen(true);
+  }, [isOnAdmin]);
 
   const handleLogout = async () => {
     await logout();
     setLocation("/");
   };
+
+  const ADMIN_TABS = [
+    { id: "overview",  label: "Overview",  Icon: Activity },
+    { id: "monitors",  label: "Monitors",  Icon: Server },
+    { id: "users",     label: "Users",     Icon: Users },
+    { id: "activity",  label: "Activity",  Icon: Radio },
+    { id: "payments",  label: "Payments",  Icon: CreditCard },
+    { id: "settings",  label: "Settings",  Icon: Settings },
+  ] as const;
+
+  const currentTab = isOnAdmin
+    ? new URLSearchParams(window.location.search).get("tab") ?? "overview"
+    : "";
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row dark">
@@ -88,18 +108,40 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
 
           {user?.isAdmin && (
-            <>
-              <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest px-3 pb-2 pt-4">Admin</p>
-              <Link href="/admin">
-                <Button
-                  variant={location === "/admin" ? "secondary" : "ghost"}
-                  className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
-                >
-                  <ShieldCheck className="w-4 h-4" />
+            <div className="pt-4">
+              <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest px-3 pb-2">Admin</p>
+
+              {/* Expandable Control Panel */}
+              <button
+                onClick={() => setAdminOpen((o) => !o)}
+                className={`w-full flex items-center justify-between gap-3 font-mono text-sm h-9 rounded px-3 transition-colors ${isOnAdmin ? "bg-secondary text-secondary-foreground" : "text-foreground hover:bg-accent hover:text-accent-foreground"}`}
+              >
+                <span className="flex items-center gap-3">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
                   Control Panel
-                </Button>
-              </Link>
-            </>
+                </span>
+                {adminOpen
+                  ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                  : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                }
+              </button>
+
+              {adminOpen && (
+                <div className="mt-1 ml-3 pl-3 border-l border-border space-y-0.5">
+                  {ADMIN_TABS.map(({ id, label, Icon }) => (
+                    <Link key={id} href={`/admin?tab=${id}`}>
+                      <Button
+                        variant={isOnAdmin && currentTab === id ? "secondary" : "ghost"}
+                        className="w-full justify-start gap-2.5 font-mono text-xs h-8 rounded"
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
+                      </Button>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </nav>
 

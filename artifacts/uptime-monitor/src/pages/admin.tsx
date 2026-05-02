@@ -1,6 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube } from "lucide-react";
@@ -289,9 +289,17 @@ function FooterSection() {
 export default function Admin() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>("overview");
+
+  const tabFromUrl = (new URLSearchParams(search).get("tab") ?? "overview") as Tab;
+  const [tab, setTab] = useState<Tab>(tabFromUrl);
+
+  useEffect(() => {
+    const t = (new URLSearchParams(search).get("tab") ?? "overview") as Tab;
+    setTab(t);
+  }, [search]);
 
   useEffect(() => {
     if (!isLoading && (!user || !user.isAdmin)) setLocation("/dashboard");
