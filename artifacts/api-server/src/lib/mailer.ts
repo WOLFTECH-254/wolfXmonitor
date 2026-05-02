@@ -7,6 +7,11 @@ function getApiKey(): string | undefined {
   return process.env.BREVO_API_KEY;
 }
 
+const SENDER = {
+  name: process.env.BREVO_SENDER_NAME ?? "wolfXmonitor",
+  email: process.env.BREVO_SENDER_EMAIL ?? "777wolftech@gmail.com",
+};
+
 async function sendEmail(payload: object): Promise<void> {
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -74,7 +79,7 @@ export async function sendWelcomeAlert(opts: {
 
   try {
     await sendEmail({
-      sender: { name: "wolfXmonitor", email: "notifications@wolfxmonitor.app" },
+      sender: SENDER,
       to: [{ email: toEmail, name: toName }],
       subject: `✓ Now watching: ${monitorName}`,
       htmlContent: html,
@@ -109,7 +114,7 @@ export async function sendDownAlert(opts: {
 
   try {
     await sendEmail({
-      sender: { name: "wolfXmonitor", email: "notifications@wolfxmonitor.app" },
+      sender: SENDER,
       to: [{ email: toEmail, name: toName }],
       subject: `⚠ DOWN: ${monitorName} is unreachable`,
       htmlContent: html,
@@ -142,7 +147,7 @@ export async function sendDeleteAlert(opts: {
 
   try {
     await sendEmail({
-      sender: { name: "wolfXmonitor", email: "notifications@wolfxmonitor.app" },
+      sender: SENDER,
       to: [{ email: toEmail, name: toName }],
       subject: `Monitor deleted: ${monitorName}`,
       htmlContent: html,
@@ -177,7 +182,7 @@ export async function sendRecoveryAlert(opts: {
 
   try {
     await sendEmail({
-      sender: { name: "wolfXmonitor", email: "notifications@wolfxmonitor.app" },
+      sender: SENDER,
       to: [{ email: toEmail, name: toName }],
       subject: `✓ RECOVERED: ${monitorName} is back online`,
       htmlContent: html,
