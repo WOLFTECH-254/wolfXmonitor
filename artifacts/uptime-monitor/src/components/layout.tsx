@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Plus, Zap, LogOut, User, ShieldCheck } from "lucide-react";
+import { Activity, Plus, Zap, LogOut, User, ShieldCheck, Globe, Crown } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -47,6 +47,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
               New Monitor
             </Button>
           </Link>
+          <Link href="/status">
+            <Button
+              variant={location.startsWith("/status") ? "secondary" : "ghost"}
+              className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
+            >
+              <Globe className="w-4 h-4" />
+              Status Page
+            </Button>
+          </Link>
+
+          {user?.plan !== "pro" && (
+            <Link href="/upgrade">
+              <Button
+                variant={location === "/upgrade" ? "secondary" : "ghost"}
+                className="w-full justify-start gap-3 font-mono text-sm h-9 rounded text-primary hover:text-primary"
+              >
+                <Crown className="w-4 h-4" />
+                Upgrade to Pro
+              </Button>
+            </Link>
+          )}
 
           {user?.isAdmin && (
             <>
