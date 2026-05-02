@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { Zap, Shield, Clock, Activity, ArrowRight, Globe, Bell, BarChart2 } from "lucide-react";
 import { Footer } from "@/components/footer";
 
@@ -36,6 +37,29 @@ function countryFlag(code: string): string {
   );
 }
 
+// Animated counter hook
+function useCountUp(target: number, duration = 1800) {
+  const [value, setValue] = useState(0);
+  const raf = useRef<number | null>(null);
+  const start = useRef<number | null>(null);
+  useEffect(() => {
+    if (target === 0) return;
+    start.current = null;
+    const step = (ts: number) => {
+      if (!start.current) start.current = ts;
+      const progress = Math.min((ts - start.current) / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.floor(eased * target));
+      if (progress < 1) raf.current = requestAnimationFrame(step);
+      else setValue(target);
+    };
+    raf.current = requestAnimationFrame(step);
+    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+  }, [target, duration]);
+  return value;
+}
+
 export default function Landing() {
   const { data: realStats = [] } = useQuery<CountryStat[]>({
     queryKey: ["country-stats"],
@@ -59,6 +83,10 @@ export default function Landing() {
   })();
 
   const totalUsers = countryStats.reduce((sum, r) => sum + r.count, 0);
+  const animatedTotal = useCountUp(totalUsers);
+  // show only first 7 flags overlapping, last slot is "+N more"
+  const visibleFlags = countryStats.slice(0, 7);
+  const extraCount = countryStats.length - visibleFlags.length;
 
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-x-hidden">
@@ -150,47 +178,53 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* GLOBAL USERS — country flags */}
-      {countryStats.length > 0 && (
-        <section className="px-6 py-20 border-t border-border">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-3">Global Reach</p>
-              <h2 className="font-display text-[clamp(32px,5vw,64px)] text-foreground leading-none">
-                WATCHED FROM <span className="text-primary">{countryStats.length} COUNTRIES</span>
-              </h2>
-              {totalUsers > 0 && (
-                <p className="font-mono text-sm text-muted-foreground mt-3">
-                  {totalUsers.toLocaleString()} wolf{totalUsers !== 1 ? "ves" : ""} watching endpoints worldwide
-                </p>
-              )}
-            </div>
+      {/* GLOBAL REACH — overlapping flags + live counter */}
+      <section className="px-6 py-14 border-t border-border">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
 
-            <div className="flex flex-wrap justify-center gap-3">
-              {countryStats.map(({ country, count: cnt }) => (
+          {/* Overlapping flag stack */}
+          <div className="flex items-center">
+            <div className="flex -space-x-3">
+              {visibleFlags.map(({ country }, i) => (
                 <div
                   key={country}
-                  title={`${COUNTRY_NAMES[country.toUpperCase()] ?? country} — ${cnt} user${cnt !== 1 ? "s" : ""}`}
-                  className="group flex flex-col items-center gap-1.5 border border-border hover:border-primary/40 bg-card hover:bg-primary/5 rounded-lg px-4 py-3 transition-all cursor-default min-w-[72px]"
+                  title={COUNTRY_NAMES[country.toUpperCase()] ?? country}
+                  style={{ zIndex: visibleFlags.length - i }}
+                  className="relative w-10 h-10 rounded-full border-2 border-background bg-card flex items-center justify-center text-xl shadow-lg cursor-default hover:z-50 hover:scale-110 transition-transform"
                 >
-                  <span className="text-2xl leading-none">{countryFlag(country)}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground group-hover:text-foreground transition-colors uppercase tracking-widest">
-                    {country.toUpperCase()}
-                  </span>
-                  <span className="font-display text-lg text-primary leading-none">{cnt}</span>
+                  {countryFlag(country)}
                 </div>
               ))}
+              {extraCount > 0 && (
+                <div
+                  style={{ zIndex: 0 }}
+                  className="relative w-10 h-10 rounded-full border-2 border-border bg-card flex items-center justify-center font-mono text-[10px] text-muted-foreground font-bold shadow-lg"
+                >
+                  +{extraCount}
+                </div>
+              )}
             </div>
-
-            {/* scrolling flag strip if many countries */}
-            {countryStats.length >= 6 && (
-              <p className="text-center font-mono text-[10px] text-muted-foreground/40 mt-8 uppercase tracking-widest">
-                Hover any flag for the country name
-              </p>
-            )}
           </div>
-        </section>
-      )}
+
+          {/* Divider */}
+          <div className="hidden sm:block w-px h-12 bg-border" />
+
+          {/* Live counter */}
+          <div className="text-center sm:text-left">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-5xl md:text-6xl text-primary leading-none tabular-nums">
+                {animatedTotal.toLocaleString()}
+              </span>
+              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">users</span>
+            </div>
+            <p className="font-mono text-[11px] text-muted-foreground mt-1.5 tracking-wide">
+              wolves monitoring from{" "}
+              <span className="text-foreground font-bold">{countryStats.length} countries</span>
+            </p>
+          </div>
+
+        </div>
+      </section>
 
       {/* HOW IT WORKS */}
       <section className="px-6 py-24 max-w-5xl mx-auto">
