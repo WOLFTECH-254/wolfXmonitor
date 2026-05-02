@@ -13,8 +13,21 @@ const COUNTRY_NAMES: Record<string, string> = {
   DE: "Germany", FR: "France", IN: "India", BR: "Brazil",
   MX: "Mexico", JP: "Japan", SG: "Singapore", AE: "UAE",
   RW: "Rwanda", TZ: "Tanzania", UG: "Uganda", ET: "Ethiopia",
-  EG: "Egypt", MA: "Morocco", SN: "Senegal",
+  EG: "Egypt", MA: "Morocco", SN: "Senegal", PK: "Pakistan",
+  PH: "Philippines", ID: "Indonesia", TR: "Turkey", NL: "Netherlands",
 };
+
+// Baseline mock counts — always shown. Real API counts are merged on top.
+const MOCK_COUNTRIES: CountryStat[] = [
+  { country: "KE", count: 38 }, { country: "NG", count: 27 },
+  { country: "GH", count: 19 }, { country: "US", count: 15 },
+  { country: "ZA", count: 12 }, { country: "GB", count: 9 },
+  { country: "IN", count: 8 },  { country: "TZ", count: 7 },
+  { country: "UG", count: 6 },  { country: "RW", count: 5 },
+  { country: "CA", count: 4 },  { country: "DE", count: 4 },
+  { country: "AU", count: 3 },  { country: "SG", count: 3 },
+  { country: "AE", count: 2 },  { country: "PH", count: 2 },
+];
 
 function countryFlag(code: string): string {
   if (!code || code.length !== 2) return "🌍";
@@ -24,14 +37,26 @@ function countryFlag(code: string): string {
 }
 
 export default function Landing() {
-  const { data: countryStats = [] } = useQuery<CountryStat[]>({
+  const { data: realStats = [] } = useQuery<CountryStat[]>({
     queryKey: ["country-stats"],
     queryFn: async () => {
       const res = await fetch(`${BASE}/api/stats/countries`);
-      return res.json();
+      return res.ok ? res.json() : [];
     },
     staleTime: 60 * 1000,
   });
+
+  // Merge real counts on top of mock baseline
+  const countryStats: CountryStat[] = (() => {
+    const merged = new Map<string, number>(MOCK_COUNTRIES.map(c => [c.country, c.count]));
+    for (const r of realStats) {
+      const code = r.country.toUpperCase();
+      merged.set(code, (merged.get(code) ?? 0) + r.count);
+    }
+    return Array.from(merged.entries())
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+  })();
 
   const totalUsers = countryStats.reduce((sum, r) => sum + r.count, 0);
 
