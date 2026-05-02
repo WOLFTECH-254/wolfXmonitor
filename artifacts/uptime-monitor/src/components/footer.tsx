@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Zap, Twitter, Instagram, Facebook, Linkedin, Youtube } from "lucide-react";
+import { Twitter, Instagram, Facebook, Linkedin, Youtube, Zap, Activity, Bell, BarChart2, Globe, ShieldCheck, BookOpen, Mail } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -11,12 +11,33 @@ interface SiteSettings {
 }
 
 const SOCIALS = [
-  { key: "twitterUrl",   Icon: Twitter,  label: "Twitter / X" },
-  { key: "instagramUrl", Icon: Instagram, label: "Instagram" },
-  { key: "facebookUrl",  Icon: Facebook,  label: "Facebook" },
-  { key: "linkedinUrl",  Icon: Linkedin,  label: "LinkedIn" },
-  { key: "youtubeUrl",   Icon: Youtube,   label: "YouTube" },
+  { key: "twitterUrl",   Icon: Twitter,   label: "Twitter / X" },
+  { key: "instagramUrl", Icon: Instagram,  label: "Instagram" },
+  { key: "facebookUrl",  Icon: Facebook,   label: "Facebook" },
+  { key: "linkedinUrl",  Icon: Linkedin,   label: "LinkedIn" },
+  { key: "youtubeUrl",   Icon: Youtube,    label: "YouTube" },
 ] as const;
+
+const PRODUCT_LINKS = [
+  { href: "/status",   label: "System Status",   Icon: Activity },
+  { href: "/pricing",  label: "Pricing",          Icon: BarChart2 },
+  { href: "/signup",   label: "Get Started Free", Icon: Zap },
+  { href: "/signin",   label: "Log In",           Icon: Globe },
+];
+
+const FEATURES_LINKS = [
+  { label: "Uptime Monitoring",  Icon: Activity },
+  { label: "Instant Alerts",     Icon: Bell },
+  { label: "Response Times",     Icon: BarChart2 },
+  { label: "Multi-Region Pings", Icon: Globe },
+  { label: "Status Pages",       Icon: ShieldCheck },
+];
+
+const COMPANY_LINKS = [
+  { href: "https://xwolf.space",           label: "About Wolf Tech",    Icon: BookOpen,    external: true },
+  { href: "mailto:wolfsilent906@gmail.com", label: "Contact Support",    Icon: Mail,        external: true },
+  { href: "/admin",                        label: "Admin Panel",        Icon: ShieldCheck, external: false },
+];
 
 export function Footer() {
   const { data } = useQuery<SiteSettings>({
@@ -33,63 +54,27 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border bg-background mt-auto">
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+      <div className="max-w-6xl mx-auto px-6 py-16">
 
-          {/* Brand */}
-          <div className="flex flex-col gap-2.5">
+        {/* Main grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 lg:gap-14">
+
+          {/* Col 1 — Brand */}
+          <div className="col-span-2 md:col-span-1 flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-2.5 group w-fit">
-              <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center group-hover:border-primary/70 transition-colors">
-                <Zap className="w-3.5 h-3.5 text-primary" />
+              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center group-hover:border-primary/70 transition-colors">
+                <Zap className="w-4 h-4 text-primary" />
               </div>
-              <span className="font-display text-lg text-foreground">
+              <span className="font-display text-xl text-foreground">
                 wolf<span className="text-primary">X</span>monitor
               </span>
             </Link>
-            <p className="font-mono text-[11px] text-muted-foreground max-w-[220px] leading-relaxed">
-              {data?.tagline || "Keeping your apps alive, 24/7."}
+            <p className="font-mono text-[11px] text-muted-foreground leading-relaxed max-w-[200px]">
+              {data?.tagline || "Keeping your apps alive, 24/7. Built for developers who hate downtime."}
             </p>
-          </div>
-
-          {/* Links */}
-          <div className="flex flex-col gap-5">
-            {/* Quick links */}
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 mb-3">Quick Links</p>
-              <div className="flex flex-wrap gap-x-5 gap-y-2">
-                <Link href="/status" className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">System Status</Link>
-                <Link href="/signup" className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">Get Started</Link>
-                <Link href="/signin" className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">Log In</Link>
-              </div>
-            </div>
-
-            {/* Policy links */}
-            {(data?.privacyUrl || data?.termsUrl) && (
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 mb-3">Legal</p>
-                <div className="flex flex-wrap gap-x-5 gap-y-2">
-                  {data?.privacyUrl && (
-                    <a href={data.privacyUrl} target="_blank" rel="noreferrer"
-                      className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
-                      Privacy Policy
-                    </a>
-                  )}
-                  {data?.termsUrl && (
-                    <a href={data.termsUrl} target="_blank" rel="noreferrer"
-                      className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
-                      Terms of Service
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Social icons */}
-          {activeSocials.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">Follow Us</p>
-              <div className="flex items-center gap-2 flex-wrap">
+            {/* Social icons */}
+            {activeSocials.length > 0 ? (
+              <div className="flex items-center gap-2 flex-wrap mt-1">
                 {activeSocials.map(({ key, Icon, label }) => (
                   <a key={key} href={data![key]} target="_blank" rel="noreferrer" aria-label={label}
                     className="w-8 h-8 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all">
@@ -97,23 +82,109 @@ export function Footer() {
                   </a>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap mt-1">
+                {[Twitter, Instagram, Facebook].map((Icon, i) => (
+                  <div key={i} className="w-8 h-8 rounded border border-border/40 flex items-center justify-center text-muted-foreground/30">
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Col 2 — Product */}
+          <div className="flex flex-col gap-4">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-bold">Product</p>
+            <ul className="flex flex-col gap-3">
+              {PRODUCT_LINKS.map(({ href, label, Icon }) => (
+                <li key={href}>
+                  <Link href={href}
+                    className="group flex items-center gap-2 font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                    <Icon className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Col 3 — Features */}
+          <div className="flex flex-col gap-4">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-bold">Features</p>
+            <ul className="flex flex-col gap-3">
+              {FEATURES_LINKS.map(({ label, Icon }) => (
+                <li key={label} className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground/60">
+                  <Icon className="w-3 h-3 text-primary/30 flex-shrink-0" />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Col 4 — Company / Legal */}
+          <div className="flex flex-col gap-4">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-bold">Company</p>
+            <ul className="flex flex-col gap-3">
+              {COMPANY_LINKS.map(({ href, label, Icon, external }) => (
+                <li key={label}>
+                  {external ? (
+                    <a href={href} target="_blank" rel="noreferrer"
+                      className="group flex items-center gap-2 font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                      <Icon className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                      {label}
+                    </a>
+                  ) : (
+                    <Link href={href}
+                      className="group flex items-center gap-2 font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                      <Icon className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                      {label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {/* Legal */}
+            {(data?.privacyUrl || data?.termsUrl) && (
+              <>
+                <p className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-bold mt-2">Legal</p>
+                <ul className="flex flex-col gap-3">
+                  {data?.privacyUrl && (
+                    <li>
+                      <a href={data.privacyUrl} target="_blank" rel="noreferrer"
+                        className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                        Privacy Policy
+                      </a>
+                    </li>
+                  )}
+                  {data?.termsUrl && (
+                    <li>
+                      <a href={data.termsUrl} target="_blank" rel="noreferrer"
+                        className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                        Terms of Service
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-widest">
-            © {year} wolfXmonitor. All rights reserved.
+        {/* Divider */}
+        <div className="mt-14 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-widest">
+            © {year} wolfXmonitor · All rights reserved.
           </p>
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <p className="font-mono text-[10px] text-muted-foreground/50 tracking-wider">
-              Powered by <span className="text-primary/70 font-bold">WOLF TECH</span> · Silent Wolf
-            </p>
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/50">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               All systems monitored
             </div>
+            <p className="font-mono text-[10px] text-muted-foreground/40 tracking-wider">
+              Powered by <span className="text-primary/60 font-bold">WOLF TECH</span>
+            </p>
           </div>
         </div>
       </div>
