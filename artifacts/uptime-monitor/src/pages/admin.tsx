@@ -431,14 +431,15 @@ export default function Admin() {
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-3 text-muted-foreground">{u.country ?? "—"}</td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => changePlan.mutate({ id: u.id, plan: u.plan === "pro" ? "free" : "pro" })}
+                      <select
+                        value={u.plan ?? "free"}
                         disabled={changePlan.isPending}
-                        title={`Click to switch to ${u.plan === "pro" ? "Free" : "Pro"}`}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-widest border transition-all cursor-pointer hover:opacity-80 ${u.plan === "pro" ? "bg-primary/10 text-primary border-primary/25" : "bg-muted/20 text-muted-foreground border-border hover:border-primary/30 hover:text-primary/70"}`}>
-                        {u.plan === "pro" && <Crown className="w-2.5 h-2.5" />}
-                        {u.plan === "pro" ? "PRO" : "FREE"}
-                      </button>
+                        onChange={(e) => changePlan.mutate({ id: u.id, plan: e.target.value })}
+                        className={`font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border bg-background cursor-pointer outline-none transition-colors ${u.plan === "pro" ? "text-primary border-primary/30 bg-primary/5" : "text-muted-foreground border-border"}`}
+                      >
+                        <option value="free">FREE</option>
+                        <option value="pro">PRO</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-foreground font-bold">{u.monitorCount}</td>
                     <td className="px-4 py-3 text-muted-foreground">{format(new Date(u.createdAt), "MMM d, yyyy")}</td>
