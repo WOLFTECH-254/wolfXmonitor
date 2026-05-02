@@ -1,26 +1,52 @@
 import axios from "axios";
 import { logger } from "./logger";
+import { db, settingsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-function getApiKey(): string | undefined {
-  return process.env.BREVO_API_KEY;
+export interface EmailConfig {
+  apiKey: string;
+  senderEmail: string;
+  senderName: string;
 }
 
-const SENDER = {
-  name: process.env.BREVO_SENDER_NAME ?? "wolfXmonitor",
-  email: process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space",
-};
+export async function getEmailConfig(): Promise<EmailConfig | null> {
+  try {
+    const rows = await db.select().from(settingsTable);
+    const map = new Map(rows.map((r) => [r.key, r.value]));
 
-async function sendEmail(payload: object): Promise<void> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    logger.warn("BREVO_API_KEY not set — skipping email notification");
-    return;
+    const apiKey =
+      map.get("brevo_api_key") ?? process.env.BREVO_API_KEY ?? "";
+    const senderEmail =
+      map.get("brevo_sender_email") ??
+      process.env.BREVO_SENDER_EMAIL ??
+      "alerts@xwolf.space";
+    const senderName =
+      map.get("brevo_sender_name") ??
+      process.env.BREVO_SENDER_NAME ??
+      "wolfXmonitor";
+
+    if (!apiKey) return null;
+    return { apiKey, senderEmail, senderName };
+  } catch {
+    const apiKey = process.env.BREVO_API_KEY ?? "";
+    if (!apiKey) return null;
+    return {
+      apiKey,
+      senderEmail: process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space",
+      senderName: process.env.BREVO_SENDER_NAME ?? "wolfXmonitor",
+    };
   }
+}
+
+async function sendEmail(
+  config: EmailConfig,
+  payload: object
+): Promise<void> {
   await axios.post(BREVO_API_URL, payload, {
     headers: {
-      "api-key": apiKey,
+      "api-key": config.apiKey,
       "content-type": "application/json",
       accept: "application/json",
     },
@@ -45,41 +71,28 @@ export async function sendWelcomeAlert(opts: {
   toName: string;
   monitorName: string;
   monitorUrl: string;
-  intervalMinutes: number;
 }): Promise<void> {
-  const { toEmail, toName, monitorName, monitorUrl, intervalMinutes } = opts;
+  const { toEmail, toName, monitorName, monitorUrl } = opts;
+  const config = await getEmailConfig();
+  if (!config) {
+    logger.warn("Brevo API key not configured — skipping welcome email");
+    return;
+  }
 
   const html = `${BRAND}${BRAND_HEADER}
-    <div style="background:#0f1a12;border:1px solid #22c55e33;border-radius:6px;padding:20px;margin-bottom:20px;">
-      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Monitor Active</div>
+    <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">✓ Now Monitoring</div>
       <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">${monitorName}</div>
       <a href="${monitorUrl}" style="font-size:12px;color:#22c55e;text-decoration:none;">${monitorUrl}</a>
     </div>
-    <div style="background:#0a120c;border:1px solid #1a3a22;border-radius:6px;padding:16px;margin-bottom:20px;">
-      <table style="width:100%;font-size:12px;color:#9ca3af;">
-        <tr>
-          <td style="padding:4px 0;">Check interval</td>
-          <td style="text-align:right;color:#d1ffd6;font-weight:600;">Every ${intervalMinutes} minute${intervalMinutes !== 1 ? "s" : ""}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 0;">Notifications</td>
-          <td style="text-align:right;color:#d1ffd6;font-weight:600;">Enabled → ${toEmail}</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 0;">Status</td>
-          <td style="text-align:right;color:#22c55e;font-weight:700;">● WATCHING</td>
-        </tr>
-      </table>
-    </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
-      Hey ${toName}, wolfXmonitor is now watching <strong style="color:#d1ffd6;">${monitorName}</strong>. 
-      You'll be alerted immediately if it goes down, and again when it recovers. You won't miss a thing.
+      Hey ${toName}, wolfXmonitor is now watching <strong style="color:#d1ffd6;">${monitorName}</strong>. You'll be notified immediately if it goes down.
     </div>
   ${BRAND_FOOTER}`;
 
   try {
-    await sendEmail({
-      sender: SENDER,
+    await sendEmail(config, {
+      sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
       subject: `✓ Now watching: ${monitorName}`,
       htmlContent: html,
@@ -99,13 +112,18 @@ export async function sendDownAlert(opts: {
   error?: string | null;
 }): Promise<void> {
   const { toEmail, toName, monitorName, monitorUrl, error } = opts;
+  const config = await getEmailConfig();
+  if (!config) {
+    logger.warn("Brevo API key not configured — skipping down alert");
+    return;
+  }
 
   const html = `${BRAND}${BRAND_HEADER}
-    <div style="background:#1a0a0a;border:1px solid #ef444433;border-radius:6px;padding:20px;margin-bottom:20px;">
+    <div style="background:#1a0a0a;border:1px solid #ef444455;border-radius:6px;padding:20px;margin-bottom:20px;">
       <div style="font-size:10px;color:#ef4444;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">⚠ Monitor Down</div>
       <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">${monitorName}</div>
       <a href="${monitorUrl}" style="font-size:12px;color:#ef4444;text-decoration:none;">${monitorUrl}</a>
-      ${error ? `<div style="margin-top:12px;font-size:11px;color:#ef4444;background:#2a0a0a;padding:10px 14px;border-radius:4px;border:1px solid #3a1010;font-family:monospace;">${error}</div>` : ""}
+      ${error ? `<div style="margin-top:12px;font-size:11px;color:#ef4444;background:#2a0a0a;padding:10px;border-radius:4px;font-family:'Courier New',monospace;">${error}</div>` : ""}
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
       Hey ${toName}, your endpoint went offline. wolfXmonitor will keep checking and notify you the moment it recovers.
@@ -113,8 +131,8 @@ export async function sendDownAlert(opts: {
   ${BRAND_FOOTER}`;
 
   try {
-    await sendEmail({
-      sender: SENDER,
+    await sendEmail(config, {
+      sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
       subject: `⚠ DOWN: ${monitorName} is unreachable`,
       htmlContent: html,
@@ -133,6 +151,11 @@ export async function sendDeleteAlert(opts: {
   monitorUrl: string;
 }): Promise<void> {
   const { toEmail, toName, monitorName, monitorUrl } = opts;
+  const config = await getEmailConfig();
+  if (!config) {
+    logger.warn("Brevo API key not configured — skipping delete alert");
+    return;
+  }
 
   const html = `${BRAND}${BRAND_HEADER}
     <div style="background:#0a0a12;border:1px solid #6b728033;border-radius:6px;padding:20px;margin-bottom:20px;">
@@ -146,8 +169,8 @@ export async function sendDeleteAlert(opts: {
   ${BRAND_FOOTER}`;
 
   try {
-    await sendEmail({
-      sender: SENDER,
+    await sendEmail(config, {
+      sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
       subject: `Monitor deleted: ${monitorName}`,
       htmlContent: html,
@@ -167,6 +190,11 @@ export async function sendRecoveryAlert(opts: {
   responseTimeMs?: number | null;
 }): Promise<void> {
   const { toEmail, toName, monitorName, monitorUrl, responseTimeMs } = opts;
+  const config = await getEmailConfig();
+  if (!config) {
+    logger.warn("Brevo API key not configured — skipping recovery alert");
+    return;
+  }
 
   const html = `${BRAND}${BRAND_HEADER}
     <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
@@ -181,8 +209,8 @@ export async function sendRecoveryAlert(opts: {
   ${BRAND_FOOTER}`;
 
   try {
-    await sendEmail({
-      sender: SENDER,
+    await sendEmail(config, {
+      sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
       subject: `✓ RECOVERED: ${monitorName} is back online`,
       htmlContent: html,

@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { db, monitorsTable, pingsTable, usersTable } from "@workspace/db";
+import { db, monitorsTable, pingsTable, usersTable, settingsTable } from "@workspace/db";
 import { desc, count, eq, sql } from "drizzle-orm";
+import axios from "axios";
 import { requireAdmin } from "../middlewares/admin";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
 
@@ -143,6 +144,99 @@ router.delete("/admin/users/:id", async (req, res) => {
   const id = Number(req.params.id);
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.status(204).send();
+});
+
+// ── Email / Brevo settings ─────────────────────────────────────────────────
+
+router.get("/admin/settings/email", async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+
+  const rawKey = map.get("brevo_api_key") ?? process.env.BREVO_API_KEY ?? "";
+  const maskedKey = rawKey.length > 8
+    ? `${"•".repeat(rawKey.length - 4)}${rawKey.slice(-4)}`
+    : rawKey ? "••••" : "";
+
+  res.json({
+    brevoApiKeySet: rawKey.length > 0,
+    brevoApiKeyMasked: maskedKey,
+    senderEmail: map.get("brevo_sender_email") ?? process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space",
+    senderName: map.get("brevo_sender_name") ?? process.env.BREVO_SENDER_NAME ?? "wolfXmonitor",
+  });
+});
+
+router.put("/admin/settings/email", async (req, res) => {
+  const { brevoApiKey, senderEmail, senderName } = req.body as {
+    brevoApiKey?: string; senderEmail?: string; senderName?: string;
+  };
+
+  const upsert = async (key: string, value: string) => {
+    await db
+      .insert(settingsTable)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: new Date() } });
+  };
+
+  if (brevoApiKey && brevoApiKey.trim() && !brevoApiKey.includes("•")) {
+    await upsert("brevo_api_key", brevoApiKey.trim());
+  }
+  if (senderEmail?.trim()) await upsert("brevo_sender_email", senderEmail.trim());
+  if (senderName?.trim()) await upsert("brevo_sender_name", senderName.trim());
+
+  res.json({ ok: true });
+});
+
+router.post("/admin/settings/email/test", async (req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+
+  const apiKey = map.get("brevo_api_key") ?? process.env.BREVO_API_KEY ?? "";
+  const senderEmail = map.get("brevo_sender_email") ?? process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space";
+  const senderName = map.get("brevo_sender_name") ?? process.env.BREVO_SENDER_NAME ?? "wolfXmonitor";
+
+  if (!apiKey) {
+    res.status(400).json({ error: "No Brevo API key configured." });
+    return;
+  }
+
+  const toEmail = (req.session as { userId?: number } & Express.Request["session"] & { userEmail?: string }).userEmail
+    ?? (req as { user?: { email: string } }).user?.email
+    ?? "";
+
+  // Fetch the admin user's email from DB
+  const [adminUser] = await db
+    .select({ email: usersTable.email, name: usersTable.name })
+    .from(usersTable)
+    .where(eq(usersTable.id, req.session.userId!));
+
+  if (!adminUser) { res.status(400).json({ error: "User not found." }); return; }
+
+  try {
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: adminUser.email, name: adminUser.name }],
+        subject: "wolfXmonitor — email test successful",
+        htmlContent: `<div style="font-family:'Courier New',monospace;background:#080e0a;color:#d1ffd6;padding:32px;border-radius:8px;max-width:480px;">
+          <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;">wolf<span style="color:#22c55e">X</span>monitor</div>
+          <div style="font-size:10px;color:#4b7a55;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;border-bottom:1px solid #1a3a22;padding-bottom:12px;">Email Config Test</div>
+          <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
+            <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:8px;">✓ Connection verified</div>
+            <div style="font-size:13px;color:#d1ffd6;">Your Brevo API key and sender are configured correctly. Alerts will be delivered to <strong>${adminUser.email}</strong>.</div>
+          </div>
+          <div style="font-size:10px;color:#4b5563;text-align:center;margin-top:20px;">Sent from ${senderEmail}</div>
+        </div>`,
+      },
+      {
+        headers: { "api-key": apiKey, "content-type": "application/json", accept: "application/json" },
+      }
+    );
+    res.json({ ok: true, messageId: (response.data as { messageId?: string }).messageId });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(502).json({ error: `Brevo rejected the request: ${msg}` });
+  }
 });
 
 export default router;

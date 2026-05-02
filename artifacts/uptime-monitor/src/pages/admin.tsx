@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, Globe, CheckCircle2, XCircle } from "lucide-react";
+import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, Globe, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -37,8 +37,215 @@ interface ActivityEntry {
   monitorId: number | null; monitorName: string | null;
   monitorUrl: string | null; userName: string | null;
 }
+interface EmailSettings {
+  brevoApiKeySet: boolean;
+  brevoApiKeyMasked: string;
+  senderEmail: string;
+  senderName: string;
+}
 
-type Tab = "overview" | "monitors" | "users" | "activity";
+type Tab = "overview" | "monitors" | "users" | "activity" | "settings";
+
+function EmailSettingsTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showKey, setShowKey] = useState(false);
+  const [brevoApiKey, setBrevoApiKey] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [testError, setTestError] = useState("");
+
+  const { data: emailSettings, isLoading } = useQuery<EmailSettings>({
+    queryKey: ["admin-email-settings"],
+    queryFn: () => apiFetch("/api/admin/settings/email"),
+  });
+
+  useEffect(() => {
+    if (emailSettings) {
+      setSenderEmail(emailSettings.senderEmail);
+      setSenderName(emailSettings.senderName);
+      if (emailSettings.brevoApiKeySet && !brevoApiKey) {
+        setBrevoApiKey(emailSettings.brevoApiKeyMasked);
+      }
+    }
+  }, [emailSettings]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      apiFetch("/api/admin/settings/email", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brevoApiKey, senderEmail, senderName }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-email-settings"] });
+      toast({ title: "Settings saved", description: "Email configuration updated." });
+    },
+    onError: () => toast({ variant: "destructive", title: "Error", description: "Failed to save settings." }),
+  });
+
+  const testConnection = async () => {
+    setTestStatus("sending");
+    setTestError("");
+    try {
+      const res = await fetch(`${BASE}/api/admin/settings/email/test`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setTestStatus("error");
+        setTestError(data.error ?? "Unknown error");
+      } else {
+        setTestStatus("ok");
+        toast({ title: "Test email sent!", description: "Check your inbox for the test message." });
+      }
+    } catch (e) {
+      setTestStatus("error");
+      setTestError(String(e));
+    }
+    setTimeout(() => setTestStatus("idle"), 6000);
+  };
+
+  if (isLoading) return <div className="font-mono text-xs text-muted-foreground py-10 text-center">Loading…</div>;
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <div className="border border-border bg-card rounded p-6 space-y-5">
+        <div>
+          <h3 className="font-display text-2xl uppercase tracking-wide text-foreground mb-1">Brevo Configuration</h3>
+          <p className="font-mono text-xs text-muted-foreground">Set your Brevo API key and sender details. Changes take effect immediately — no server restart needed.</p>
+        </div>
+
+        {/* API Key */}
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Brevo API Key
+          </label>
+          <div className="relative">
+            <input
+              type={showKey ? "text" : "password"}
+              value={brevoApiKey}
+              onChange={(e) => setBrevoApiKey(e.target.value)}
+              onFocus={() => {
+                if (brevoApiKey === emailSettings?.brevoApiKeyMasked) setBrevoApiKey("");
+              }}
+              onBlur={() => {
+                if (!brevoApiKey && emailSettings?.brevoApiKeySet) {
+                  setBrevoApiKey(emailSettings.brevoApiKeyMasked);
+                }
+              }}
+              placeholder="xkeysib-…"
+              className="w-full bg-background border border-border rounded px-3 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {emailSettings?.brevoApiKeySet && (
+            <p className="font-mono text-[10px] text-primary">
+              ✓ Key configured. Leave unchanged to keep existing key.
+            </p>
+          )}
+        </div>
+
+        {/* Sender Name */}
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Sender Name
+          </label>
+          <input
+            type="text"
+            value={senderName}
+            onChange={(e) => setSenderName(e.target.value)}
+            placeholder="wolfXmonitor"
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+          />
+        </div>
+
+        {/* Sender Email */}
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Sender Email
+          </label>
+          <input
+            type="email"
+            value={senderEmail}
+            onChange={(e) => setSenderEmail(e.target.value)}
+            placeholder="alerts@yourdomain.com"
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+          />
+          <p className="font-mono text-[10px] text-muted-foreground">Must be from a domain verified in your Brevo account.</p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-3 pt-2">
+          <Button
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="font-mono text-xs uppercase tracking-widest"
+          >
+            {save.isPending ? "Saving…" : "Save Settings"}
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={testConnection}
+            disabled={testStatus === "sending" || !emailSettings?.brevoApiKeySet}
+            className="font-mono text-xs uppercase tracking-widest flex items-center gap-2"
+          >
+            <Send className="w-3.5 h-3.5" />
+            {testStatus === "sending" ? "Sending…" : "Test Connection"}
+          </Button>
+        </div>
+
+        {/* Test result */}
+        {testStatus === "ok" && (
+          <div className="flex items-center gap-2 font-mono text-xs text-primary border border-primary/25 bg-primary/5 rounded px-3 py-2">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            Test email sent — check your inbox.
+          </div>
+        )}
+        {testStatus === "error" && (
+          <div className="font-mono text-xs text-destructive border border-destructive/25 bg-destructive/5 rounded px-3 py-2">
+            <div className="flex items-center gap-2 mb-1">
+              <XCircle className="w-3.5 h-3.5 shrink-0" />
+              Connection failed
+            </div>
+            <div className="text-destructive/70 pl-5">{testError}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Status card */}
+      <div className="border border-border bg-card rounded p-5">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3">Current Status</div>
+        <div className="space-y-2 font-mono text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">API Key</span>
+            <span className={emailSettings?.brevoApiKeySet ? "text-primary" : "text-destructive"}>
+              {emailSettings?.brevoApiKeySet ? "✓ Configured" : "✗ Not set"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Sender</span>
+            <span className="text-foreground">{emailSettings?.senderEmail ?? "—"}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Display Name</span>
+            <span className="text-foreground">{emailSettings?.senderName ?? "—"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Admin() {
   const { user, isLoading } = useAuth();
@@ -101,6 +308,7 @@ export default function Admin() {
     { id: "monitors", label: `Monitors (${monitors.length})`, icon: Server },
     { id: "users", label: `Users (${users.length})`, icon: Users },
     { id: "activity", label: "Activity", icon: RefreshCw },
+    { id: "settings", label: "Email Settings", icon: Mail },
   ];
 
   return (
@@ -121,12 +329,12 @@ export default function Admin() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-border">
+        <div className="flex gap-1 border-b border-border overflow-x-auto">
           {tabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex items-center gap-2 font-mono text-xs uppercase tracking-widest px-4 py-3 border-b-2 transition-colors ${
+              className={`flex items-center gap-2 font-mono text-xs uppercase tracking-widest px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${
                 tab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -171,7 +379,6 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Quick recent pings */}
             <div>
               <h2 className="font-display text-2xl uppercase tracking-wide text-muted-foreground mb-4">Recent Monitors</h2>
               <div className="border border-border bg-card rounded overflow-hidden">
@@ -366,6 +573,9 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {/* Settings tab */}
+        {tab === "settings" && <EmailSettingsTab />}
       </div>
     </Layout>
   );
