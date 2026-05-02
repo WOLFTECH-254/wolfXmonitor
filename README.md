@@ -14,7 +14,7 @@ Know the instant your sites go down — before your users do.
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
 [![Made in Kenya](https://img.shields.io/badge/Made%20in-Kenya%20🇰🇪-006600)](https://xcasper.space)
 
-[Live Demo](https://wolfxmonitor.replit.app) · [Report Bug](https://github.com/WOLFTECH-254/wolfXmonitor/issues) · [Request Feature](https://github.com/WOLFTECH-254/wolfXmonitor/issues)
+[Live Demo](https://monitor.xwolf.space) · [Report Bug](https://github.com/WOLFTECH-254/wolfXmonitor/issues) · [Request Feature](https://github.com/WOLFTECH-254/wolfXmonitor/issues)
 
 </div>
 
