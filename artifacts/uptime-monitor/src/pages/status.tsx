@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Zap, CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Footer } from "@/components/footer";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -30,6 +31,7 @@ export default function StatusPage() {
   const hasDown = data && data.down > 0;
 
   return (
+    <>
     <div className="min-h-screen bg-background text-foreground dark">
       <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
@@ -132,10 +134,9 @@ export default function StatusPage() {
           ))}
         </div>
 
-        <div className="mt-12 text-center font-mono text-xs text-muted-foreground">
-          Powered by <Link href="/" className="text-primary hover:underline">wolfXmonitor</Link>
-        </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 }

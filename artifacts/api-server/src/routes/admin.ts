@@ -54,6 +54,8 @@ router.get("/admin/users", requireAdmin, async (_req, res) => {
     notificationsEnabled: u.notificationsEnabled,
     monitorCount: countMap.get(u.id) ?? 0,
     createdAt: u.createdAt,
+    plan: u.plan ?? "free",
+    country: u.country ?? null,
   }));
 
   res.json(result);
@@ -238,6 +240,84 @@ router.put("/admin/settings/billing", requireAdmin, async (req, res) => {
   if (paystackPublicKey?.trim()) await upsertSetting("paystack_public_key", paystackPublicKey.trim());
   if (planPriceUsd !== undefined && planPriceUsd > 0) await upsertSetting("plan_price_usd", String(planPriceUsd));
   if (freeMonitorLimit !== undefined && freeMonitorLimit > 0) await upsertSetting("free_monitor_limit", String(freeMonitorLimit));
+  res.json({ ok: true });
+});
+
+// ── Plan management ─────────────────────────────────────────────────────────
+
+router.patch("/admin/users/:id/plan", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const { plan } = req.body as { plan?: string };
+  if (!plan || !["free", "pro"].includes(plan)) {
+    res.status(400).json({ error: "plan must be 'free' or 'pro'" });
+    return;
+  }
+  const [updated] = await db
+    .update(usersTable)
+    .set({ plan })
+    .where(eq(usersTable.id, id))
+    .returning({ id: usersTable.id, plan: usersTable.plan });
+  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(updated);
+});
+
+// ── Footer / Site settings ────────────────────────────────────────────────
+
+const FOOTER_KEYS = [
+  "footer_twitter", "footer_instagram", "footer_facebook",
+  "footer_linkedin", "footer_youtube",
+  "footer_privacy_url", "footer_terms_url", "footer_tagline",
+] as const;
+
+router.get("/settings/site", async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json({
+    twitterUrl:   map.get("footer_twitter")     ?? "",
+    instagramUrl: map.get("footer_instagram")   ?? "",
+    facebookUrl:  map.get("footer_facebook")    ?? "",
+    linkedinUrl:  map.get("footer_linkedin")    ?? "",
+    youtubeUrl:   map.get("footer_youtube")     ?? "",
+    privacyUrl:   map.get("footer_privacy_url") ?? "",
+    termsUrl:     map.get("footer_terms_url")   ?? "",
+    tagline:      map.get("footer_tagline")     ?? "",
+  });
+});
+
+router.get("/admin/settings/site", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json({
+    twitterUrl:   map.get("footer_twitter")     ?? "",
+    instagramUrl: map.get("footer_instagram")   ?? "",
+    facebookUrl:  map.get("footer_facebook")    ?? "",
+    linkedinUrl:  map.get("footer_linkedin")    ?? "",
+    youtubeUrl:   map.get("footer_youtube")     ?? "",
+    privacyUrl:   map.get("footer_privacy_url") ?? "",
+    termsUrl:     map.get("footer_terms_url")   ?? "",
+    tagline:      map.get("footer_tagline")     ?? "",
+  });
+});
+
+router.put("/admin/settings/site", requireAdmin, async (req, res) => {
+  const body = req.body as {
+    twitterUrl?: string; instagramUrl?: string; facebookUrl?: string;
+    linkedinUrl?: string; youtubeUrl?: string;
+    privacyUrl?: string; termsUrl?: string; tagline?: string;
+  };
+  const pairs: [string, string][] = [
+    ["footer_twitter",     body.twitterUrl   ?? ""],
+    ["footer_instagram",   body.instagramUrl ?? ""],
+    ["footer_facebook",    body.facebookUrl  ?? ""],
+    ["footer_linkedin",    body.linkedinUrl  ?? ""],
+    ["footer_youtube",     body.youtubeUrl   ?? ""],
+    ["footer_privacy_url", body.privacyUrl   ?? ""],
+    ["footer_terms_url",   body.termsUrl     ?? ""],
+    ["footer_tagline",     body.tagline      ?? ""],
+  ];
+  for (const [key, value] of pairs) {
+    await upsertSetting(key, value);
+  }
   res.json({ ok: true });
 });
 

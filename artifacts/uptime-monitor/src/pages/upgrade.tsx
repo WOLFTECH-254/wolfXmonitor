@@ -4,6 +4,7 @@ import { Zap, CheckCircle2, ArrowRight, Crown, AlertCircle } from "lucide-react"
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Footer } from "@/components/footer";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -222,6 +223,7 @@ export default function Upgrade() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings } from "lucide-react";
+import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
 }
 
 interface AdminStats { totalUsers: number; totalMonitors: number; totalPings: number; monitorsUp: number; monitorsDown: number; monitorsUnknown: number; globalUptime: number; }
-interface AdminUser { id: number; name: string; email: string; isAdmin: boolean; notificationsEnabled: boolean; monitorCount: number; createdAt: string; }
+interface AdminUser { id: number; name: string; email: string; isAdmin: boolean; notificationsEnabled: boolean; monitorCount: number; createdAt: string; plan?: string; country?: string; }
 interface AdminMonitor { id: number; name: string; url: string; intervalMinutes: number; active: boolean; lastStatus: string; lastPingedAt: string | null; lastResponseTimeMs: number | null; userId: number | null; userName: string | null; userEmail: string | null; createdAt: string; }
 interface ActivityEntry { id: number; status: string; responseTimeMs: number | null; statusCode: number | null; error: string | null; createdAt: string; monitorId: number | null; monitorName: string | null; monitorUrl: string | null; userName: string | null; }
 interface EmailSettings { brevoApiKeySet: boolean; brevoApiKeyMasked: string; senderEmail: string; senderName: string; }
@@ -196,6 +196,95 @@ function BillingSection() {
   );
 }
 
+// ── Footer / Site Settings ────────────────────────────────────────────────────
+interface SiteSettings { twitterUrl: string; instagramUrl: string; facebookUrl: string; linkedinUrl: string; youtubeUrl: string; privacyUrl: string; termsUrl: string; tagline: string; }
+
+function FooterSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [privacyUrl, setPrivacyUrl] = useState("");
+  const [termsUrl, setTermsUrl] = useState("");
+  const [tagline, setTagline] = useState("");
+
+  const { data } = useQuery<SiteSettings>({ queryKey: ["admin-site-settings"], queryFn: () => apiFetch("/api/admin/settings/site") });
+
+  useEffect(() => {
+    if (data) {
+      setTwitterUrl(data.twitterUrl ?? "");
+      setInstagramUrl(data.instagramUrl ?? "");
+      setFacebookUrl(data.facebookUrl ?? "");
+      setLinkedinUrl(data.linkedinUrl ?? "");
+      setYoutubeUrl(data.youtubeUrl ?? "");
+      setPrivacyUrl(data.privacyUrl ?? "");
+      setTermsUrl(data.termsUrl ?? "");
+      setTagline(data.tagline ?? "");
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => apiFetch("/api/admin/settings/site", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ twitterUrl, instagramUrl, facebookUrl, linkedinUrl, youtubeUrl, privacyUrl, termsUrl, tagline }),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["site-settings"] });
+      toast({ title: "Footer settings saved" });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to save" }),
+  });
+
+  const SOCIAL_FIELDS = [
+    { label: "Twitter / X URL", value: twitterUrl, setter: setTwitterUrl, Icon: Twitter, placeholder: "https://twitter.com/yourhandle" },
+    { label: "Instagram URL", value: instagramUrl, setter: setInstagramUrl, Icon: Instagram, placeholder: "https://instagram.com/yourhandle" },
+    { label: "Facebook URL", value: facebookUrl, setter: setFacebookUrl, Icon: Facebook, placeholder: "https://facebook.com/yourpage" },
+    { label: "LinkedIn URL", value: linkedinUrl, setter: setLinkedinUrl, Icon: Linkedin, placeholder: "https://linkedin.com/company/..." },
+    { label: "YouTube URL", value: youtubeUrl, setter: setYoutubeUrl, Icon: Youtube, placeholder: "https://youtube.com/@channel" },
+  ] as const;
+
+  return (
+    <div className="space-y-5">
+      <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">Footer &amp; Social</h3>
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Footer Tagline</label>
+          <input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Keeping your apps alive, 24/7."
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {SOCIAL_FIELDS.map(({ label, value, setter, Icon, placeholder }) => (
+            <div key={label} className="space-y-1.5">
+              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Icon className="w-3 h-3" />{label}</label>
+              <input type="url" value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder}
+                className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Privacy Policy URL</label>
+            <input type="url" value={privacyUrl} onChange={(e) => setPrivacyUrl(e.target.value)} placeholder="https://yoursite.com/privacy"
+              className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Terms of Service URL</label>
+            <input type="url" value={termsUrl} onChange={(e) => setTermsUrl(e.target.value)} placeholder="https://yoursite.com/terms"
+              className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+          </div>
+        </div>
+        <Button onClick={() => save.mutate()} disabled={save.isPending} className="font-mono text-xs uppercase tracking-widest">
+          {save.isPending ? "Saving…" : "Save Footer Settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Admin Component ──────────────────────────────────────────────────────
 export default function Admin() {
   const { user, isLoading } = useAuth();
@@ -218,6 +307,12 @@ export default function Admin() {
   const deleteMonitor = useMutation({ mutationFn: (id: number) => fetch(`${BASE}/api/admin/monitors/${id}`, { method: "DELETE", credentials: "include" }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-monitors"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast({ title: "Monitor deleted" }); } });
   const deleteUser = useMutation({ mutationFn: (id: number) => fetch(`${BASE}/api/admin/users/${id}`, { method: "DELETE", credentials: "include" }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast({ title: "User deleted" }); } });
   const toggleAdmin = useMutation({ mutationFn: (id: number) => apiFetch(`/api/admin/users/${id}/toggle-admin`, { method: "PATCH", headers: { "content-type": "application/json" } }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-users"] }) });
+  const changePlan = useMutation({
+    mutationFn: ({ id, plan }: { id: number; plan: string }) =>
+      apiFetch(`/api/admin/users/${id}/plan`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ plan }) }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); toast({ title: "Plan updated" }); },
+    onError: () => toast({ variant: "destructive", title: "Failed to update plan" }),
+  });
 
   if (isLoading || !user?.isAdmin) return null;
 
@@ -334,8 +429,17 @@ export default function Admin() {
                   <tr key={u.id} className="hover:bg-white/[0.02] group">
                     <td className="px-4 py-3 font-bold text-foreground">{u.name}{u.isAdmin && <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-widest bg-primary/10 text-primary border border-primary/25"><ShieldCheck className="w-2.5 h-2.5" />ADMIN</span>}</td>
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{(u as AdminUser & { country?: string }).country ?? "—"}</td>
-                    <td className="px-4 py-3"><span className={`font-bold text-[10px] uppercase tracking-widest ${(u as AdminUser & { plan?: string }).plan === "pro" ? "text-primary" : "text-muted-foreground"}`}>{(u as AdminUser & { plan?: string }).plan ?? "free"}</span></td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.country ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => changePlan.mutate({ id: u.id, plan: u.plan === "pro" ? "free" : "pro" })}
+                        disabled={changePlan.isPending}
+                        title={`Click to switch to ${u.plan === "pro" ? "Free" : "Pro"}`}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-widest border transition-all cursor-pointer hover:opacity-80 ${u.plan === "pro" ? "bg-primary/10 text-primary border-primary/25" : "bg-muted/20 text-muted-foreground border-border hover:border-primary/30 hover:text-primary/70"}`}>
+                        {u.plan === "pro" && <Crown className="w-2.5 h-2.5" />}
+                        {u.plan === "pro" ? "PRO" : "FREE"}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-foreground font-bold">{u.monitorCount}</td>
                     <td className="px-4 py-3 text-muted-foreground">{format(new Date(u.createdAt), "MMM d, yyyy")}</td>
                     <td className="px-4 py-3"><div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -418,6 +522,9 @@ export default function Admin() {
             </div>
             <div className="border border-border bg-card rounded p-6">
               <BillingSection />
+            </div>
+            <div className="border border-border bg-card rounded p-6">
+              <FooterSection />
             </div>
           </div>
         )}

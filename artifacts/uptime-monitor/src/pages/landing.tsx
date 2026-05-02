@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Zap, Shield, Clock, Activity, ArrowRight, Globe, Bell, BarChart2 } from "lucide-react";
+import { Footer } from "@/components/footer";
 
 export default function Landing() {
   return (
@@ -200,18 +201,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="px-6 py-6 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary" />
-          <span className="font-display text-base text-muted-foreground">
-            wolf<span className="text-primary">X</span>monitor
-          </span>
-        </div>
-        <p className="font-mono text-xs text-muted-foreground">
-          Always watching. Never sleeping.
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }
