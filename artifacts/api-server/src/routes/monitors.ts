@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, monitorsTable, pingsTable } from "@workspace/db";
+import { db, monitorsTable, pingsTable, usersTable } from "@workspace/db";
 import { eq, desc, count, and, gte, sql } from "drizzle-orm";
 import {
   CreateMonitorBody,
@@ -14,13 +14,18 @@ import {
 } from "@workspace/api-zod";
 import { pingUrl } from "../lib/pinger";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
+import { requireAuth } from "../middlewares/auth";
+import { sendDownAlert } from "../lib/mailer";
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get("/monitors", async (req, res) => {
   const monitors = await db
     .select()
     .from(monitorsTable)
+    .where(eq(monitorsTable.userId, req.session.userId!))
     .orderBy(desc(monitorsTable.createdAt));
   res.json(monitors);
 });
@@ -30,6 +35,7 @@ router.post("/monitors", async (req, res) => {
   const [monitor] = await db
     .insert(monitorsTable)
     .values({
+      userId: req.session.userId!,
       name: body.name,
       url: body.url,
       intervalMinutes: body.intervalMinutes ?? 5,
@@ -47,7 +53,7 @@ router.get("/monitors/:id", async (req, res) => {
   const [monitor] = await db
     .select()
     .from(monitorsTable)
-    .where(eq(monitorsTable.id, id));
+    .where(and(eq(monitorsTable.id, id), eq(monitorsTable.userId, req.session.userId!)));
   if (!monitor) {
     res.status(404).json({ error: "Monitor not found" });
     return;
@@ -67,7 +73,7 @@ router.put("/monitors/:id", async (req, res) => {
   const [monitor] = await db
     .update(monitorsTable)
     .set(updates)
-    .where(eq(monitorsTable.id, id))
+    .where(and(eq(monitorsTable.id, id), eq(monitorsTable.userId, req.session.userId!)))
     .returning();
   if (!monitor) {
     res.status(404).json({ error: "Monitor not found" });
@@ -83,6 +89,14 @@ router.put("/monitors/:id", async (req, res) => {
 
 router.delete("/monitors/:id", async (req, res) => {
   const { id } = DeleteMonitorParams.parse({ id: Number(req.params.id) });
+  const [monitor] = await db
+    .select()
+    .from(monitorsTable)
+    .where(and(eq(monitorsTable.id, id), eq(monitorsTable.userId, req.session.userId!)));
+  if (!monitor) {
+    res.status(404).json({ error: "Monitor not found" });
+    return;
+  }
   unscheduleMonitor(id);
   await db.delete(monitorsTable).where(eq(monitorsTable.id, id));
   res.status(204).send();
@@ -146,7 +160,7 @@ router.post("/monitors/:id/ping", async (req, res) => {
   const [monitor] = await db
     .select()
     .from(monitorsTable)
-    .where(eq(monitorsTable.id, id));
+    .where(and(eq(monitorsTable.id, id), eq(monitorsTable.userId, req.session.userId!)));
   if (!monitor) {
     res.status(404).json({ error: "Monitor not found" });
     return;
@@ -162,6 +176,8 @@ router.post("/monitors/:id/ping", async (req, res) => {
       error: result.error,
     })
     .returning();
+
+  const wasUp = monitor.lastStatus !== "down";
   await db
     .update(monitorsTable)
     .set({
@@ -170,27 +186,44 @@ router.post("/monitors/:id/ping", async (req, res) => {
       lastResponseTimeMs: result.responseTimeMs,
     })
     .where(eq(monitorsTable.id, id));
+
+  if (result.status === "down" && wasUp && monitor.userId) {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, monitor.userId));
+    if (user?.notificationsEnabled) {
+      const emailTo = user.notificationEmail ?? user.email;
+      await sendDownAlert({ toEmail: emailTo, toName: user.name, monitorName: monitor.name, monitorUrl: monitor.url, error: result.error });
+    }
+  }
+
   res.json(ping);
 });
 
 router.get("/dashboard/summary", async (req, res) => {
-  const monitors = await db.select().from(monitorsTable);
+  const monitors = await db
+    .select()
+    .from(monitorsTable)
+    .where(eq(monitorsTable.userId, req.session.userId!));
   const totalMonitors = monitors.length;
   const activeMonitors = monitors.filter((m) => m.active).length;
   const monitorsUp = monitors.filter((m) => m.lastStatus === "up").length;
   const monitorsDown = monitors.filter((m) => m.lastStatus === "down").length;
   const monitorsUnknown = monitors.filter((m) => m.lastStatus === "unknown").length;
 
-  const [pingTotals] = await db
-    .select({
-      total: count(),
-      up: sql<number>`count(*) filter (where ${pingsTable.status} = 'up')`,
-    })
-    .from(pingsTable);
+  const monitorIds = monitors.map((m) => m.id);
+  let overallUptimePercent = 100;
 
-  const total = Number(pingTotals?.total ?? 0);
-  const up = Number(pingTotals?.up ?? 0);
-  const overallUptimePercent = total > 0 ? (up / total) * 100 : 100;
+  if (monitorIds.length > 0) {
+    const [pingTotals] = await db
+      .select({
+        total: count(),
+        up: sql<number>`count(*) filter (where ${pingsTable.status} = 'up')`,
+      })
+      .from(pingsTable)
+      .where(sql`${pingsTable.monitorId} = ANY(${sql.raw(`ARRAY[${monitorIds.join(",")}]::int[]`)})`);
+    const total = Number(pingTotals?.total ?? 0);
+    const up = Number(pingTotals?.up ?? 0);
+    overallUptimePercent = total > 0 ? (up / total) * 100 : 100;
+  }
 
   res.json({
     totalMonitors,

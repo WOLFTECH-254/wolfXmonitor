@@ -1,12 +1,14 @@
 import { pgTable, serial, text, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { usersTable } from "./users";
 
 export const monitorStatusEnum = pgEnum("monitor_status", ["up", "down", "unknown"]);
 export const pingStatusEnum = pgEnum("ping_status", ["up", "down"]);
 
 export const monitorsTable = pgTable("monitors", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   url: text("url").notNull(),
   intervalMinutes: integer("interval_minutes").notNull().default(5),
@@ -14,6 +16,7 @@ export const monitorsTable = pgTable("monitors", {
   lastPingedAt: timestamp("last_pinged_at"),
   lastStatus: monitorStatusEnum("last_status").notNull().default("unknown"),
   lastResponseTimeMs: integer("last_response_time_ms"),
+  lastNotifiedDownAt: timestamp("last_notified_down_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

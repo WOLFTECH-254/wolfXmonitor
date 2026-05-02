@@ -16,12 +16,12 @@ export default function Landing() {
           </span>
         </Link>
         <div className="flex items-center gap-3">
-          <Link href="/dashboard">
+          <Link href="/signin">
             <button className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">
               Log In
             </button>
           </Link>
-          <Link href="/dashboard">
+          <Link href="/signup">
             <button className="font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-5 py-2 rounded font-bold tracking-wide">
               Get Started
             </button>
@@ -52,13 +52,13 @@ export default function Landing() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/dashboard">
+            <Link href="/signup">
               <button className="flex items-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-8 py-3.5 rounded font-bold tracking-wider group">
                 Start Monitoring
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/signin">
               <button className="font-mono text-sm border border-border hover:border-primary/50 text-foreground hover:text-primary transition-all px-8 py-3.5 rounded tracking-wider">
                 View Dashboard
               </button>
@@ -184,11 +184,11 @@ export default function Landing() {
             WAKE UP YOUR <span className="text-primary glow-text">APPS.</span>
           </h2>
           <p className="font-mono text-muted-foreground text-sm mb-10 max-w-xl mx-auto">
-            Stop letting Render put your projects to sleep. Start monitoring in seconds — no account required.
+            Stop letting Render put your projects to sleep. Create a free account and start monitoring in seconds.
           </p>
-          <Link href="/dashboard">
+          <Link href="/signup">
             <button className="inline-flex items-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-10 py-4 rounded font-bold tracking-wider text-base group">
-              Open Dashboard
+              Create Free Account
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </Link>

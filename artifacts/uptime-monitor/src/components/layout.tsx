@@ -1,9 +1,16 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Plus, Zap } from "lucide-react";
+import { Activity, Plus, Zap, LogOut, User } from "lucide-react";
 import { Button } from "./ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row dark">
@@ -42,15 +49,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-2">
-            <span className="status-dot up" />
-            <span className="font-mono text-xs text-muted-foreground">System Online</span>
+        <div className="p-4 border-t border-border space-y-3">
+          {user && (
+            <div className="flex items-start gap-2 px-1">
+              <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0 mt-0.5">
+                <User className="w-3 h-3 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-mono text-xs text-foreground truncate">{user.name}</div>
+                <div className="font-mono text-[10px] text-muted-foreground truncate">{user.email}</div>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="status-dot up" />
+              <span className="font-mono text-xs text-muted-foreground">Online</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="font-mono text-[10px] text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+            >
+              <LogOut className="w-3 h-3" />
+              Logout
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main — grid background matches landing page */}
+      {/* Main */}
       <main className="flex-1 overflow-auto grid-bg">
         <div className="max-w-6xl mx-auto p-6 md:p-8">
           {children}
