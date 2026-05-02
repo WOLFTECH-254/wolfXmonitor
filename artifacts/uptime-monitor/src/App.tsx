@@ -9,6 +9,7 @@ import MonitorNew from "@/pages/monitor-new";
 import MonitorDetail from "@/pages/monitor-detail";
 import SignIn from "@/pages/signin";
 import SignUp from "@/pages/signup";
+import Admin from "@/pages/admin";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -59,6 +60,9 @@ function Router() {
       </Route>
       <Route path="/monitors/:id">
         {() => <ProtectedRoute component={MonitorDetail} />}
+      </Route>
+      <Route path="/admin">
+        {() => <ProtectedRoute component={Admin} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Zap, ArrowRight, Eye, EyeOff, Globe, Clock, BarChart2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function SignUp() {
@@ -16,10 +16,7 @@ export default function SignUp() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true);
     try {
       await register(name, email, password);
@@ -32,110 +29,145 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground dark flex flex-col items-center justify-center px-4 grid-bg">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 justify-center mb-10 group">
-          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center group-hover:border-primary/70 transition-colors">
+    <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
+      {/* Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-display text-2xl tracking-wide">
-            wolf<span className="text-primary">X</span>monitor
-          </span>
+          <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
         </Link>
+        <Link href="/signin">
+          <button className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">
+            Already have an account? Sign in →
+          </button>
+        </Link>
+      </nav>
 
-        {/* Card */}
-        <div className="border border-border bg-card rounded p-8">
-          <div className="mb-8">
-            <p className="font-mono text-xs text-primary uppercase tracking-widest mb-2">Get Started</p>
-            <h1 className="font-display text-4xl uppercase tracking-wide text-foreground leading-none">
-              Create Account
+      <div className="flex min-h-screen pt-16">
+        {/* Left — brand panel */}
+        <div className="hidden lg:flex flex-col justify-center px-16 w-[52%] grid-bg relative border-r border-border">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-background/40 pointer-events-none" />
+          <div className="relative z-10 max-w-lg">
+            <h1 className="font-display leading-none mb-6">
+              <span className="block text-[clamp(44px,5.5vw,88px)] text-foreground">START</span>
+              <span className="block text-[clamp(44px,5.5vw,88px)] text-foreground">WATCHING</span>
+              <span className="block text-[clamp(44px,5.5vw,88px)] text-primary">NOW.</span>
             </h1>
-            <p className="font-mono text-sm text-muted-foreground mt-3">
-              Free forever. Start monitoring in 30 seconds.
+            <p className="font-mono text-muted-foreground text-sm leading-relaxed mb-12 max-w-sm">
+              Free forever. Add your Render, Railway, or Fly.io endpoints and keep them alive around the clock.
             </p>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="border border-destructive/40 bg-destructive/10 rounded px-4 py-3 font-mono text-xs text-destructive">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-                required
-                className="w-full bg-background border border-border rounded px-4 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
-              />
+            <div className="grid grid-cols-3 border border-border bg-card/50 rounded">
+              {[
+                { value: "99.9%", label: "Uptime SLA" },
+                { value: "<30s", label: "Detection" },
+                { value: "Free", label: "Forever" },
+              ].map((s, i) => (
+                <div key={i} className="flex flex-col items-center py-5 border-r border-border last:border-r-0">
+                  <div className="font-display text-3xl text-foreground leading-none">{s.value}</div>
+                  <div className="font-mono text-[10px] text-muted-foreground mt-1.5 uppercase tracking-widest">{s.label}</div>
+                </div>
+              ))}
             </div>
 
-            <div className="space-y-2">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full bg-background border border-border rounded px-4 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
-              />
-              <p className="font-mono text-[10px] text-muted-foreground">
-                Down alerts will be sent to this email.
+            <div className="mt-10 space-y-4">
+              {[
+                { icon: Globe, text: "Add any HTTP/HTTPS endpoint" },
+                { icon: Clock, text: "Ping on your schedule (1–60 min)" },
+                { icon: BarChart2, text: "Response time & uptime history" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 border border-primary/25 rounded flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="font-mono text-sm text-muted-foreground">{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right — form */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+          <div className="w-full max-w-sm">
+            <div className="mb-10">
+              <p className="font-mono text-xs text-primary uppercase tracking-widest mb-3">Free account</p>
+              <h2 className="font-display text-5xl uppercase tracking-wide text-foreground leading-none">
+                Create Account
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <div className="border border-destructive/40 bg-destructive/10 rounded px-4 py-3 font-mono text-xs text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Name</label>
+                <input
+                  type="text"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Email</label>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
+                />
+                <p className="font-mono text-[10px] text-muted-foreground">Down alerts will be sent to this address.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPass ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min. 8 characters"
+                    required
+                    className="w-full bg-card border border-border rounded px-4 py-3 pr-11 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
+                  />
+                  <button type="button" onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all py-3.5 rounded font-bold tracking-wider group mt-2"
+              >
+                {loading ? "Creating account..." : "Create Account"}
+                {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-border text-center">
+              <p className="font-mono text-xs text-muted-foreground">
+                Already have an account?{" "}
+                <Link href="/signin" className="text-primary hover:underline">Sign in →</Link>
               </p>
             </div>
-
-            <div className="space-y-2">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 8 characters"
-                  required
-                  className="w-full bg-background border border-border rounded px-4 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all py-3 rounded font-bold tracking-wider group"
-            >
-              {loading ? "Creating account..." : "Create Account"}
-              {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-border text-center">
-            <p className="font-mono text-xs text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/signin" className="text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
           </div>
         </div>
       </div>

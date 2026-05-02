@@ -7,6 +7,7 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   notificationEmail: text("notification_email"),
   notificationsEnabled: boolean("notifications_enabled").notNull().default(true),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   notificationEmail: string | null;
   notificationsEnabled: boolean;
+  isAdmin: boolean;
 }
 
 async function fetchMe(): Promise<AuthUser | null> {

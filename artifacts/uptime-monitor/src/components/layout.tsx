@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Plus, Zap, LogOut, User } from "lucide-react";
+import { Activity, Plus, Zap, LogOut, User, ShieldCheck } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -47,17 +47,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
               New Monitor
             </Button>
           </Link>
+
+          {user?.isAdmin && (
+            <>
+              <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest px-3 pb-2 pt-4">Admin</p>
+              <Link href="/admin">
+                <Button
+                  variant={location === "/admin" ? "secondary" : "ghost"}
+                  className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Control Panel
+                </Button>
+              </Link>
+            </>
+          )}
         </nav>
 
         <div className="p-4 border-t border-border space-y-3">
           {user && (
             <div className="flex items-start gap-2 px-1">
               <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0 mt-0.5">
-                <User className="w-3 h-3 text-primary" />
+                {user.isAdmin ? <ShieldCheck className="w-3 h-3 text-primary" /> : <User className="w-3 h-3 text-primary" />}
               </div>
               <div className="min-w-0">
                 <div className="font-mono text-xs text-foreground truncate">{user.name}</div>
-                <div className="font-mono text-[10px] text-muted-foreground truncate">{user.email}</div>
+                <div className="font-mono text-[10px] text-muted-foreground truncate">{user.isAdmin ? "Admin" : user.email}</div>
               </div>
             </div>
           )}

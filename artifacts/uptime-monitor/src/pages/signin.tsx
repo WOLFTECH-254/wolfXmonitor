@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Zap, ArrowRight, Eye, EyeOff, Activity, Shield, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function SignIn() {
@@ -27,93 +27,120 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground dark flex flex-col items-center justify-center px-4 grid-bg">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 justify-center mb-10 group">
-          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center group-hover:border-primary/70 transition-colors">
+    <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
+      {/* Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-display text-2xl tracking-wide">
-            wolf<span className="text-primary">X</span>monitor
-          </span>
+          <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
         </Link>
+        <Link href="/signup">
+          <button className="font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-5 py-2 rounded font-bold tracking-wide">
+            Create Account
+          </button>
+        </Link>
+      </nav>
 
-        {/* Card */}
-        <div className="border border-border bg-card rounded p-8">
-          <div className="mb-8">
-            <p className="font-mono text-xs text-primary uppercase tracking-widest mb-2">Welcome Back</p>
-            <h1 className="font-display text-4xl uppercase tracking-wide text-foreground leading-none">
-              Sign In
+      <div className="flex min-h-screen pt-16">
+        {/* Left — brand panel */}
+        <div className="hidden lg:flex flex-col justify-center px-16 w-[52%] grid-bg relative border-r border-border">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-background/40 pointer-events-none" />
+          <div className="relative z-10 max-w-lg">
+            <div className="inline-flex items-center gap-2 border border-primary/30 bg-primary/5 rounded-full px-4 py-1.5 mb-10">
+              <span className="status-dot up" />
+              <span className="font-mono text-xs text-primary tracking-wider">ALL SYSTEMS OPERATIONAL</span>
+            </div>
+            <h1 className="font-display leading-none mb-6">
+              <span className="block text-[clamp(48px,6vw,96px)] text-foreground">WELCOME</span>
+              <span className="block text-[clamp(48px,6vw,96px)] text-primary">BACK.</span>
             </h1>
-            <p className="font-mono text-sm text-muted-foreground mt-3">
-              Monitor your endpoints. Keep your apps alive.
+            <p className="font-mono text-muted-foreground text-sm leading-relaxed mb-12 max-w-sm">
+              I am just a wolf — watching your endpoints. Every minute. Every day. Never sleeping.
             </p>
+            <div className="space-y-4">
+              {[
+                { icon: Activity, text: "Real-time response time tracking" },
+                { icon: Bell, text: "Instant email alerts via Brevo" },
+                { icon: Shield, text: "Auto-ping keeps Render apps awake" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 border border-primary/25 rounded flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="font-mono text-sm text-muted-foreground">{text}</span>
+                </div>
+              ))}
+            </div>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="border border-destructive/40 bg-destructive/10 rounded px-4 py-3 font-mono text-xs text-destructive">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full bg-background border border-border rounded px-4 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
-              />
+        {/* Right — form panel */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+          <div className="w-full max-w-sm">
+            <div className="mb-10">
+              <p className="font-mono text-xs text-primary uppercase tracking-widest mb-3">Access your account</p>
+              <h2 className="font-display text-5xl uppercase tracking-wide text-foreground leading-none">
+                Sign In
+              </h2>
             </div>
 
-            <div className="space-y-2">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Password
-              </label>
-              <div className="relative">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <div className="border border-destructive/40 bg-destructive/10 rounded px-4 py-3 font-mono text-xs text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Email</label>
                 <input
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   required
-                  className="w-full bg-background border border-border rounded px-4 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
+                  className="w-full bg-card border border-border rounded px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
               </div>
+
+              <div className="space-y-2">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPass ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full bg-card border border-border rounded px-4 py-3 pr-11 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/60 transition-colors"
+                  />
+                  <button type="button" onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all py-3.5 rounded font-bold tracking-wider group mt-2"
+              >
+                {loading ? "Signing in..." : "Sign In"}
+                {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-border text-center">
+              <p className="font-mono text-xs text-muted-foreground">
+                No account yet?{" "}
+                <Link href="/signup" className="text-primary hover:underline">Create one free →</Link>
+              </p>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all py-3 rounded font-bold tracking-wider group"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-              {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-border text-center">
-            <p className="font-mono text-xs text-muted-foreground">
-              No account yet?{" "}
-              <Link href="/signup" className="text-primary hover:underline">
-                Create one
-              </Link>
-            </p>
           </div>
         </div>
       </div>

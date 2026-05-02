@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 
 const router = Router();
 
@@ -13,6 +13,7 @@ function safeUser(u: typeof usersTable.$inferSelect) {
     email: u.email,
     notificationEmail: u.notificationEmail,
     notificationsEnabled: u.notificationsEnabled,
+    isAdmin: u.isAdmin,
   };
 }
 
@@ -31,6 +32,9 @@ router.post("/auth/register", async (req, res) => {
     res.status(409).json({ error: "An account with that email already exists" });
     return;
   }
+  const [{ total }] = await db.select({ total: count() }).from(usersTable);
+  const isFirstUser = Number(total) === 0;
+
   const passwordHash = await bcrypt.hash(password, 12);
   const [user] = await db.insert(usersTable).values({
     name: name.trim(),
@@ -38,6 +42,7 @@ router.post("/auth/register", async (req, res) => {
     passwordHash,
     notificationEmail: email.toLowerCase().trim(),
     notificationsEnabled: true,
+    isAdmin: isFirstUser,
   }).returning();
   req.session.userId = user.id;
   res.status(201).json(safeUser(user));
