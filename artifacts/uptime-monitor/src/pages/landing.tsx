@@ -28,6 +28,10 @@ const MOCK_COUNTRIES: CountryStat[] = [
   { country: "CA", count: 4 },  { country: "DE", count: 4 },
   { country: "AU", count: 3 },  { country: "SG", count: 3 },
   { country: "AE", count: 2 },  { country: "PH", count: 2 },
+  { country: "ET", count: 2 },  { country: "MA", count: 2 },
+  { country: "FR", count: 2 },  { country: "BR", count: 1 },
+  { country: "JP", count: 1 },  { country: "NL", count: 1 },
+  { country: "PK", count: 1 },  { country: "EG", count: 1 },
 ];
 
 function countryFlag(code: string): string {
@@ -37,18 +41,32 @@ function countryFlag(code: string): string {
   );
 }
 
-// Animated counter hook
-function useCountUp(target: number, duration = 1800) {
+// Animated counter — triggers once when element enters viewport
+function useCountUp(target: number, duration = 2000) {
   const [value, setValue] = useState(0);
+  const [triggered, setTriggered] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const raf = useRef<number | null>(null);
-  const start = useRef<number | null>(null);
+
+  // Intersection Observer — fire once when section is 30% visible
   useEffect(() => {
-    if (target === 0) return;
-    start.current = null;
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setTriggered(true); obs.disconnect(); } },
+      { threshold: 0.3 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Start counting once triggered
+  useEffect(() => {
+    if (!triggered || target === 0) return;
+    let startTs: number | null = null;
     const step = (ts: number) => {
-      if (!start.current) start.current = ts;
-      const progress = Math.min((ts - start.current) / duration, 1);
-      // ease-out cubic
+      if (!startTs) startTs = ts;
+      const progress = Math.min((ts - startTs) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.floor(eased * target));
       if (progress < 1) raf.current = requestAnimationFrame(step);
@@ -56,8 +74,9 @@ function useCountUp(target: number, duration = 1800) {
     };
     raf.current = requestAnimationFrame(step);
     return () => { if (raf.current) cancelAnimationFrame(raf.current); };
-  }, [target, duration]);
-  return value;
+  }, [triggered, target, duration]);
+
+  return { value, sectionRef };
 }
 
 export default function Landing() {
@@ -83,10 +102,13 @@ export default function Landing() {
   })();
 
   const totalUsers = countryStats.reduce((sum, r) => sum + r.count, 0);
-  const animatedTotal = useCountUp(totalUsers);
-  // show only first 7 flags overlapping, last slot is "+N more"
-  const visibleFlags = countryStats.slice(0, 7);
+  const { value: animatedTotal, sectionRef } = useCountUp(totalUsers);
+  // show only first 8 flags overlapping
+  const visibleFlags = countryStats.slice(0, 8);
   const extraCount = countryStats.length - visibleFlags.length;
+  // display labels — rounded down to nearest 100, shown as "100+"
+  const displayUsers = Math.floor(totalUsers / 100) * 100;
+  const displayCountries = Math.floor(countryStats.length / 10) * 10;
 
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-x-hidden">
@@ -179,7 +201,7 @@ export default function Landing() {
       </section>
 
       {/* GLOBAL REACH — overlapping flags + live counter */}
-      <section className="px-6 py-14 border-t border-border">
+      <section ref={sectionRef} className="px-6 py-14 border-t border-border">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
 
           {/* Overlapping flag stack */}
@@ -211,15 +233,15 @@ export default function Landing() {
 
           {/* Live counter */}
           <div className="text-center sm:text-left">
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-1">
               <span className="font-display text-5xl md:text-6xl text-primary leading-none tabular-nums">
-                {animatedTotal.toLocaleString()}
+                {animatedTotal >= displayUsers ? `${displayUsers.toLocaleString()}+` : animatedTotal.toLocaleString()}
               </span>
-              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">users</span>
+              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest ml-1">users</span>
             </div>
             <p className="font-mono text-[11px] text-muted-foreground mt-1.5 tracking-wide">
               wolves monitoring from{" "}
-              <span className="text-foreground font-bold">{countryStats.length} countries</span>
+              <span className="text-foreground font-bold">{displayCountries}+ countries</span>
             </p>
           </div>
 
