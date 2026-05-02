@@ -35,10 +35,19 @@ const MOCK_COUNTRIES: CountryStat[] = [
   { country: "PK", count: 1 },  { country: "EG", count: 1 },
 ];
 
-function countryFlag(code: string): string {
-  if (!code || code.length !== 2) return "🌍";
-  return String.fromCodePoint(
-    ...code.toUpperCase().split("").map((c) => 0x1F1E6 + c.charCodeAt(0) - 65)
+function FlagImg({ code, size = 32 }: { code: string; size?: number }) {
+  const lower = code.toLowerCase();
+  return (
+    <img
+      src={`https://flagcdn.com/w${size}/${lower}.png`}
+      srcSet={`https://flagcdn.com/w${size * 2}/${lower}.png 2x`}
+      width={size}
+      height={Math.round(size * 0.75)}
+      alt={code}
+      loading="lazy"
+      className="rounded-sm object-cover"
+      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+    />
   );
 }
 
@@ -220,9 +229,9 @@ export default function Landing() {
                   key={country}
                   title={COUNTRY_NAMES[country.toUpperCase()] ?? country}
                   style={{ zIndex: visibleFlags.length - i }}
-                  className="relative w-10 h-10 rounded-full border-2 border-background bg-card flex items-center justify-center text-xl shadow-lg cursor-default hover:z-50 hover:scale-110 transition-transform"
+                  className="relative w-10 h-10 rounded-full border-2 border-background bg-card overflow-hidden flex items-center justify-center shadow-lg cursor-default hover:z-50 hover:scale-110 transition-transform"
                 >
-                  {countryFlag(country)}
+                  <FlagImg code={country} size={40} />
                 </div>
               ))}
               {extraCount > 0 && (

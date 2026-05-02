@@ -26,7 +26,7 @@ echo "[3/6] Building API server..."
 pnpm --filter @workspace/api-server run build
 
 echo "[4/6] Building frontend..."
-BASE_URL="/" pnpm --filter @workspace/uptime-monitor run build
+BASE_PATH="/" pnpm --filter @workspace/uptime-monitor run build
 
 echo "[5/6] Ensuring log directory..."
 mkdir -p "$LOG_DIR"
