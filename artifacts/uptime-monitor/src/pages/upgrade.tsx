@@ -41,7 +41,6 @@ declare global {
         amount: number;
         currency: string;
         ref: string;
-        metadata?: Record<string, unknown>;
         onClose: () => void;
         callback: (response: { reference: string }) => void;
       }): { openIframe(): void };
@@ -144,25 +143,13 @@ export default function Upgrade() {
     setPaying(true);
 
     const localAmt = localPrice(selectedPlan.priceUsd);
+    // Plan slug is embedded in ref so server can extract it without metadata
     const ref = `wxm_${selectedPlan.slug}_${Date.now()}_${user!.id}`;
 
-    const handler = window.PaystackPop.setup({
-      key: config.publicKey,
-      email: config.userEmail,
-      amount: localAmt * 100,
-      currency: config.currency,
-      ref,
-      metadata: {
-        userId: user!.id,
-        planSlug: selectedPlan.slug,
-        planName: selectedPlan.name,
-      },
-      onClose: () => { setPaying(false); },
-      callback: async (response) => {
-        setPaying(true);
-        try {
-          const res = await fetch(`${BASE}/api/payments/verify/${response.reference}`, { credentials: "include" });
-          const data = await res.json() as { ok?: boolean; error?: string };
+    const onPaymentDone = (reference: string) => {
+      fetch(`${BASE}/api/payments/verify/${reference}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((data: { ok?: boolean; error?: string }) => {
           if (data.ok) {
             queryClient.invalidateQueries({ queryKey: ["auth-me"] });
             queryClient.invalidateQueries({ queryKey: ["pay-config"] });
@@ -171,11 +158,21 @@ export default function Upgrade() {
             setError(data.error ?? "Payment verification failed. Contact support.");
             setPaying(false);
           }
-        } catch {
-          setError("Could not verify payment. Contact support with ref: " + response.reference);
+        })
+        .catch(() => {
+          setError("Could not verify payment. Contact support with ref: " + reference);
           setPaying(false);
-        }
-      },
+        });
+    };
+
+    const handler = window.PaystackPop.setup({
+      key: config.publicKey,
+      email: config.userEmail,
+      amount: localAmt * 100,
+      currency: config.currency,
+      ref,
+      onClose: function() { setPaying(false); },
+      callback: function(response) { onPaymentDone(response.reference); },
     });
     handler.openIframe();
   }

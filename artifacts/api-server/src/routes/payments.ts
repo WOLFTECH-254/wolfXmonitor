@@ -92,7 +92,14 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
     }).data;
 
     if (data.status === "success") {
-      const planSlug = data.metadata?.planSlug ?? "monthly";
+      // Extract plan slug from reference (format: wxm_<slug>_<timestamp>_<userId>)
+      // Fall back to metadata if present (future-proofing), then default to monthly
+      const refParts = reference.split("_");
+      const slugFromRef = refParts.length >= 2 ? refParts[1] : null;
+      const validSlugs = ["weekly", "monthly", "quarterly", "biannual", "yearly"];
+      const planSlug = data.metadata?.planSlug
+        ?? (slugFromRef && validSlugs.includes(slugFromRef) ? slugFromRef : null)
+        ?? "monthly";
 
       // Look up the plan to get duration
       const [plan] = await db.select().from(plansTable).where(eq(plansTable.slug, planSlug));
