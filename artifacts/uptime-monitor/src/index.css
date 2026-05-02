@@ -44,33 +44,38 @@
 }
 
 :root {
-  --background: 0 0% 3%;
-  --foreground: 0 0% 96%;
-  --border: 0 0% 12%;
+  /* Dark background with subtle green tint — not pure black */
+  --background: 130 12% 4%;
+  --foreground: 130 8% 94%;
 
-  --card: 0 0% 6%;
-  --card-foreground: 0 0% 96%;
+  /* Borders carry the green tint */
+  --border: 130 14% 11%;
 
-  --primary: 130 100% 40%;
-  --primary-foreground: 0 0% 0%;
+  /* Cards have a slightly lighter green-tinted dark */
+  --card: 130 10% 7%;
+  --card-foreground: 130 8% 94%;
 
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 80%;
+  /* Primary green — vivid but not blinding */
+  --primary: 130 82% 34%;
+  --primary-foreground: 130 100% 4%;
 
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 50%;
+  --secondary: 130 10% 12%;
+  --secondary-foreground: 130 12% 78%;
 
-  --accent: 130 60% 10%;
-  --accent-foreground: 130 100% 40%;
+  --muted: 130 10% 10%;
+  --muted-foreground: 130 8% 48%;
 
-  --destructive: 0 72% 51%;
+  --accent: 130 25% 9%;
+  --accent-foreground: 130 80% 40%;
+
+  --destructive: 0 65% 46%;
   --destructive-foreground: 0 0% 98%;
 
-  --input: 0 0% 12%;
-  --ring: 130 100% 40%;
+  --input: 130 12% 11%;
+  --ring: 130 80% 34%;
 
-  --chart-1: 130 100% 40%;
-  --chart-2: 0 72% 51%;
+  --chart-1: 130 80% 34%;
+  --chart-2: 0 65% 46%;
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-mono: 'Space Mono', monospace;
@@ -94,6 +99,7 @@
   font-weight: 700;
 }
 
+/* Status dots — toned down glow */
 .status-dot {
   width: 9px;
   height: 9px;
@@ -104,13 +110,13 @@
 
 .status-dot.up {
   background-color: hsl(var(--primary));
-  box-shadow: 0 0 10px hsl(var(--primary) / 0.7), 0 0 20px hsl(var(--primary) / 0.3);
-  animation: pulse-up 2s ease-in-out infinite;
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
+  animation: pulse-up 2.5s ease-in-out infinite;
 }
 
 .status-dot.down {
   background-color: hsl(var(--destructive));
-  box-shadow: 0 0 8px hsl(var(--destructive) / 0.6);
+  box-shadow: 0 0 5px hsl(var(--destructive) / 0.4);
 }
 
 .status-dot.unknown {
@@ -118,25 +124,28 @@
 }
 
 @keyframes pulse-up {
-  0%, 100% { opacity: 0.75; box-shadow: 0 0 6px hsl(var(--primary) / 0.5); }
-  50% { opacity: 1; box-shadow: 0 0 14px hsl(var(--primary) / 0.9), 0 0 28px hsl(var(--primary) / 0.4); }
+  0%, 100% { opacity: 0.7; box-shadow: 0 0 4px hsl(var(--primary) / 0.4); }
+  50%       { opacity: 1;   box-shadow: 0 0 10px hsl(var(--primary) / 0.65); }
 }
 
+/* Restrained glow — only on key hero text */
 .glow-text {
-  text-shadow: 0 0 20px hsl(var(--primary) / 0.6), 0 0 60px hsl(var(--primary) / 0.2);
+  text-shadow: 0 0 30px hsl(var(--primary) / 0.35), 0 0 80px hsl(var(--primary) / 0.12);
 }
 
+/* Grid — green-tinted lines instead of white */
 .grid-bg {
   background-image:
-    linear-gradient(hsl(0 0% 100% / 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(0 0% 100% / 0.03) 1px, transparent 1px);
+    linear-gradient(hsl(130 40% 50% / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(130 40% 50% / 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
+/* Card hover — subtle, not bright */
 .card-hover {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .card-hover:hover {
-  border-color: hsl(var(--primary) / 0.35);
-  box-shadow: 0 0 24px hsl(var(--primary) / 0.06);
+  border-color: hsl(var(--primary) / 0.28);
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.04);
 }
