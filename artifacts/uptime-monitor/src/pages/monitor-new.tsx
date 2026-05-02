@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Layout } from "@/components/layout";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,6 +59,10 @@ export default function MonitorNew() {
 
   return (
     <Layout>
+      <Helmet>
+        <title>New Monitor — wolfXmonitor</title>
+        <meta name="description" content="Add a new URL to monitor. Get alerted the moment it goes down." />
+      </Helmet>
       <div className="max-w-2xl mx-auto space-y-8">
 
         {/* Header */}

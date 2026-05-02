@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { Zap, CheckCircle2, XCircle, ArrowLeft, Clock } from "lucide-react";
@@ -47,6 +48,11 @@ export default function InstancePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark">
+      <Helmet>
+        <title>Status Page — wolfXmonitor</title>
+        <meta name="description" content="Live public status page showing real-time uptime and response time for monitored services." />
+        <meta property="og:title" content="Status Page — wolfXmonitor" />
+      </Helmet>
       <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">

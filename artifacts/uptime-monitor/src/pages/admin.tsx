@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Layout } from "@/components/layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
@@ -472,6 +473,10 @@ export default function Admin() {
 
   return (
     <Layout>
+      <Helmet>
+        <title>Admin Panel — wolfXmonitor</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="space-y-8">
         <div className="pb-6 border-b border-border">
           <div className="flex items-center gap-2 mb-3">

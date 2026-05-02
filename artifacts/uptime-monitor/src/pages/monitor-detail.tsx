@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Layout } from "@/components/layout";
 import {
   useGetMonitor,
@@ -118,6 +119,7 @@ export default function MonitorDetail() {
   if (isLoadingMonitor || !monitor) {
     return (
       <Layout>
+        <Helmet><title>Monitor — wolfXmonitor</title></Helmet>
         <div className="space-y-6">
           <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-3 gap-3">
@@ -158,6 +160,11 @@ export default function MonitorDetail() {
 
   return (
     <Layout>
+      <Helmet>
+        <title>{monitor.url} — wolfXmonitor</title>
+        <meta name="description" content={`Live uptime monitoring for ${monitor.url}. Track response times, incidents, and SLA.`} />
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <div className="space-y-6">
         {/* Breadcrumb + header */}
         <div>

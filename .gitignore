@@ -44,6 +44,13 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-# Replit
+# Replit — never commit these
+.replit
+replit.md
 .cache/
 .local/
+.upm/
+attached_assets/
+image_*.png
+image_*.jpg
+image_*.webp

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -91,6 +92,10 @@ export default function IncidentsPage() {
 
   return (
     <Layout>
+      <Helmet>
+        <title>Incidents — wolfXmonitor</title>
+        <meta name="description" content="Browse your downtime history and incident log across all monitors." />
+      </Helmet>
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>

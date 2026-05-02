@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -112,6 +113,13 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-x-hidden">
+      <Helmet>
+        <title>wolfXmonitor — Know When Your Sites Go Down</title>
+        <meta name="description" content="Real-time uptime monitoring with instant alerts. Free & Pro plans. 100+ wolves watching from 20+ countries." />
+        <meta property="og:title" content="wolfXmonitor — Know When Your Sites Go Down" />
+        <meta property="og:description" content="Real-time uptime monitoring with instant alerts. Free & Pro plans. 100+ wolves watching from 20+ countries." />
+        <meta property="og:url" content="https://wolfxmonitor.replit.app/" />
+      </Helmet>
 
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Zap, CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
@@ -32,6 +33,11 @@ export default function StatusPage() {
 
   return (
     <>
+      <Helmet>
+        <title>System Status — wolfXmonitor</title>
+        <meta name="description" content="Live status of all monitored services. Check uptime, response times, and recent incidents." />
+        <meta property="og:title" content="System Status — wolfXmonitor" />
+      </Helmet>
     <div className="min-h-screen bg-background text-foreground dark">
       <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">

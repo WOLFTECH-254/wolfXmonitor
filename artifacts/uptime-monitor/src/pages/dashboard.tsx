@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Layout } from "@/components/layout";
 import {
   useGetDashboardSummary,
@@ -56,6 +57,10 @@ export default function Dashboard() {
 
   return (
     <Layout>
+      <Helmet>
+        <title>Dashboard — wolfXmonitor</title>
+        <meta name="description" content="Your uptime monitoring dashboard. View live status, response times, and incidents." />
+      </Helmet>
       <div className="space-y-8">
 
         {/* Page header */}

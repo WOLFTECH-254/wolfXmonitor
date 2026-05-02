@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Zap, CheckCircle2, ArrowRight, Crown, AlertCircle, Clock } from "lucide-react";
@@ -196,6 +197,11 @@ export default function Upgrade() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark">
+      <Helmet>
+        <title>Upgrade to Pro — wolfXmonitor</title>
+        <meta name="description" content="Unlock unlimited monitors, faster checks, and priority alerts with wolfXmonitor Pro." />
+        <meta property="og:title" content="Upgrade to Pro — wolfXmonitor" />
+      </Helmet>
 
       {/* ── Payment Method Picker (Kenya only) ─────────────────────────────── */}
       {showMethodPicker && (

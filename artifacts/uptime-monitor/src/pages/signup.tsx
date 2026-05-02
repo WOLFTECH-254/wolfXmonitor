@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Zap, ArrowRight, Eye, EyeOff, Globe, Clock, BarChart2 } from "lucide-react";
@@ -47,6 +48,11 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
+      <Helmet>
+        <title>Get Started Free — wolfXmonitor</title>
+        <meta name="description" content="Create your free wolfXmonitor account. Monitor up to 5 sites with instant downtime alerts." />
+        <meta property="og:title" content="Get Started Free — wolfXmonitor" />
+      </Helmet>
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">

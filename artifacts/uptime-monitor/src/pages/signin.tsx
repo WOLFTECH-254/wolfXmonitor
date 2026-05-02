@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Zap, ArrowRight, Eye, EyeOff, Activity, Shield, Bell } from "lucide-react";
@@ -28,6 +29,11 @@ export default function SignIn() {
 
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
+      <Helmet>
+        <title>Sign In — wolfXmonitor</title>
+        <meta name="description" content="Sign in to your wolfXmonitor account and keep an eye on your uptime." />
+        <meta property="og:title" content="Sign In — wolfXmonitor" />
+      </Helmet>
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2.5 group">
