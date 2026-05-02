@@ -5,11 +5,10 @@ import * as z from "zod";
 import { useCreateMonitor, getListMonitorsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { TerminalSquare, ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,54 +39,58 @@ export default function MonitorNew() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListMonitorsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
-        toast({
-          title: "Monitor created",
-          description: "Endpoint added to watch list.",
-        });
-        setLocation("/");
+        toast({ title: "Monitor created", description: "Endpoint added to watch list." });
+        setLocation("/dashboard");
       },
-      onError: (err: any) => {
-        toast({
-          variant: "destructive",
-          title: "Error creating monitor",
-          description: err.message || "An error occurred.",
-        });
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "An error occurred.";
+        toast({ variant: "destructive", title: "Error creating monitor", description: msg });
       }
     });
   }
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center gap-4 border-b border-border pb-6">
-          <Link href="/">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold font-mono tracking-tight text-foreground flex items-center gap-2">
-              <TerminalSquare className="w-5 h-5 text-primary" />
-              ADD_ENDPOINT
-            </h1>
-            <p className="text-muted-foreground font-mono text-sm mt-1">Configure a new service to monitor.</p>
+      <div className="max-w-2xl mx-auto space-y-8">
+
+        {/* Header */}
+        <div className="pb-6 border-b border-border">
+          <div className="flex items-center gap-3 mb-4">
+            <Link href="/dashboard">
+              <button className="w-8 h-8 rounded border border-border bg-card hover:border-primary/50 flex items-center justify-center transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </Link>
+            <p className="font-mono text-xs text-primary uppercase tracking-widest">New Monitor</p>
           </div>
+          <h1 className="font-display text-5xl uppercase tracking-wide text-foreground leading-none">
+            Add Endpoint
+          </h1>
+          <p className="text-muted-foreground font-mono text-sm mt-3">
+            Configure a new service to monitor and keep alive.
+          </p>
         </div>
 
-        <Card className="p-6 bg-card border-border">
+        {/* Form card */}
+        <div className="border border-border bg-card rounded p-8 card-hover">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 font-mono">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Endpoint Name</FormLabel>
+                    <FormLabel className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Endpoint Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Main API Server" className="bg-background" {...field} />
+                      <Input
+                        placeholder="e.g., Main API Server"
+                        className="bg-background border-border font-mono focus:border-primary/50 transition-colors"
+                        {...field}
+                      />
                     </FormControl>
-                    <FormDescription>A recognizable name for this service.</FormDescription>
-                    <FormMessage />
+                    <FormDescription className="font-mono text-xs text-muted-foreground">A recognizable name for this service.</FormDescription>
+                    <FormMessage className="font-mono text-xs" />
                   </FormItem>
                 )}
               />
@@ -97,12 +100,16 @@ export default function MonitorNew() {
                 name="url"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>URL</FormLabel>
+                    <FormLabel className="font-mono text-xs uppercase tracking-widest text-muted-foreground">URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://..." className="bg-background" {...field} />
+                      <Input
+                        placeholder="https://my-app.onrender.com"
+                        className="bg-background border-border font-mono focus:border-primary/50 transition-colors"
+                        {...field}
+                      />
                     </FormControl>
-                    <FormDescription>The full HTTP/HTTPS URL to ping.</FormDescription>
-                    <FormMessage />
+                    <FormDescription className="font-mono text-xs text-muted-foreground">The full HTTP/HTTPS URL to ping.</FormDescription>
+                    <FormMessage className="font-mono text-xs" />
                   </FormItem>
                 )}
               />
@@ -112,39 +119,49 @@ export default function MonitorNew() {
                 name="intervalMinutes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ping Interval</FormLabel>
+                    <FormLabel className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Ping Interval</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value.toString()}>
                       <FormControl>
-                        <SelectTrigger className="bg-background">
+                        <SelectTrigger className="bg-background border-border font-mono">
                           <SelectValue placeholder="Select interval" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-card border-border font-mono">
                         <SelectItem value="1">Every 1 minute</SelectItem>
                         <SelectItem value="5">Every 5 minutes</SelectItem>
                         <SelectItem value="10">Every 10 minutes</SelectItem>
+                        <SelectItem value="14">Every 14 minutes (Render safe)</SelectItem>
                         <SelectItem value="15">Every 15 minutes</SelectItem>
                         <SelectItem value="30">Every 30 minutes</SelectItem>
                         <SelectItem value="60">Every 60 minutes</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>How often should we check this endpoint.</FormDescription>
-                    <FormMessage />
+                    <FormDescription className="font-mono text-xs text-muted-foreground">
+                      Use 14 minutes or less for Render — it sleeps after 15 min of inactivity.
+                    </FormDescription>
+                    <FormMessage className="font-mono text-xs" />
                   </FormItem>
                 )}
               />
 
-              <div className="flex justify-end gap-4 pt-4 border-t border-border">
-                <Link href="/">
-                  <Button variant="ghost" type="button">Cancel</Button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <Link href="/dashboard">
+                  <Button variant="ghost" type="button" className="font-mono text-sm">
+                    Cancel
+                  </Button>
                 </Link>
-                <Button type="submit" disabled={createMonitor.isPending} className="min-w-[120px]">
-                  {createMonitor.isPending ? "SAVING..." : "SAVE_ENDPOINT"}
-                </Button>
+                <button
+                  type="submit"
+                  disabled={createMonitor.isPending}
+                  className="flex items-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all px-6 py-2.5 rounded font-bold tracking-wider group"
+                >
+                  {createMonitor.isPending ? "Saving..." : "Save Endpoint"}
+                  {!createMonitor.isPending && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
+                </button>
               </div>
             </form>
           </Form>
-        </Card>
+        </div>
       </div>
     </Layout>
   );

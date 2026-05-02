@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -74,7 +74,7 @@
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-mono: 'Space Mono', monospace;
-  --app-font-display: 'Bebas Neue', sans-serif;
+  --app-font-display: 'Barlow Condensed', sans-serif;
   --radius: 0.2rem;
 }
 
@@ -90,7 +90,8 @@
 
 .font-display {
   font-family: var(--app-font-display);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  font-weight: 700;
 }
 
 .status-dot {
@@ -132,7 +133,10 @@
   background-size: 40px 40px;
 }
 
-.card-border-glow {
-  border-color: hsl(var(--primary) / 0.3);
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.05), inset 0 0 20px hsl(var(--primary) / 0.02);
+.card-hover {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.card-hover:hover {
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: 0 0 24px hsl(var(--primary) / 0.06);
 }
