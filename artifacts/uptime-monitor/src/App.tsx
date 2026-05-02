@@ -14,6 +14,7 @@ import Admin from "@/pages/admin";
 import StatusPage from "@/pages/status";
 import InstancePage from "@/pages/instance";
 import Upgrade from "@/pages/upgrade";
+import Incidents from "@/pages/incidents";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -73,6 +74,9 @@ function Router() {
       </Route>
       <Route path="/status" component={StatusPage} />
       <Route path="/status/:id" component={InstancePage} />
+      <Route path="/incidents">
+        {() => <ProtectedRoute component={Incidents} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

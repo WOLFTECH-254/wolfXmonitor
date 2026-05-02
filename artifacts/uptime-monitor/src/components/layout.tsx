@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Plus, Zap, LogOut, User, ShieldCheck, Globe, Crown } from "lucide-react";
+import { Activity, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -47,13 +47,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
               New Monitor
             </Button>
           </Link>
-          <Link href="/status">
+          <Link href="/incidents">
             <Button
-              variant={location.startsWith("/status") ? "secondary" : "ghost"}
+              variant={location === "/incidents" ? "secondary" : "ghost"}
               className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
             >
-              <Globe className="w-4 h-4" />
-              Status Page
+              <AlertTriangle className="w-4 h-4" />
+              Incidents
             </Button>
           </Link>
 
