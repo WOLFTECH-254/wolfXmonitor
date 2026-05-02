@@ -14,7 +14,7 @@ Know the instant your sites go down — before your users do.
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
 [![Made in Kenya](https://img.shields.io/badge/Made%20in-Kenya%20🇰🇪-006600)](https://xcasper.space)
 
-[Live Demo](https://wolfxmonitor.replit.app) · [Report Bug](https://github.com/yourusername/wolfxmonitor/issues) · [Request Feature](https://github.com/yourusername/wolfxmonitor/issues)
+[Live Demo](https://wolfxmonitor.replit.app) · [Report Bug](https://github.com/WOLFTECH-254/wolfXmonitor/issues) · [Request Feature](https://github.com/WOLFTECH-254/wolfXmonitor/issues)
 
 </div>
 
@@ -115,7 +115,7 @@ wolfxmonitor/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/wolfxmonitor.git
+git clone https://github.com/WOLFTECH-254/wolfXmonitor.git
 cd wolfxmonitor
 
 # Install all workspace dependencies
@@ -182,7 +182,7 @@ pnpm --filter @workspace/uptime-monitor run dev
 
 ```bash
 # On your VPS
-git clone https://github.com/yourusername/wolfxmonitor.git /var/www/wolfxmonitor
+git clone https://github.com/WOLFTECH-254/wolfXmonitor.git /var/www/wolfxmonitor
 cd /var/www/wolfxmonitor
 pnpm install
 pnpm --filter @workspace/uptime-monitor run build
