@@ -5,6 +5,8 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { globalLimiter, authLimiter, apiLimiter } from "./middlewares/rate-limit";
+import { ipBlockMiddleware } from "./middlewares/ip-block";
 
 declare module "express-session" {
   interface SessionData {
@@ -30,6 +32,11 @@ app.use(
   }),
 );
 
+app.set("trust proxy", 1);
+app.use(globalLimiter);
+app.use("/api/auth", authLimiter);
+app.use("/api", apiLimiter);
+app.use(ipBlockMiddleware);
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

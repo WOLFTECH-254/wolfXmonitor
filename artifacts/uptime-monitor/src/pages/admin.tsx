@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube } from "lucide-react";
+import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube, Shield, Ban, AlertTriangle, CheckCheck } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -41,8 +41,11 @@ interface EmailSettings { brevoApiKeySet: boolean; brevoApiKeyMasked: string; se
 interface BillingSettings { paystackSecretKeySet: boolean; paystackSecretKeyMasked: string; paystackPublicKey: string; paystackCurrency: string; freeMonitorLimit: number; }
 interface PaymentRow { id: number; paystackReference: string; amount: number; currency: string; status: string; plan: string; createdAt: string; userId: number | null; userName: string | null; userEmail: string | null; }
 interface AdminPlan { id: number; slug: string; name: string; durationDays: number; priceUsd: string; monitorLimit: number; isActive: boolean; sortOrder: number; }
+interface SecurityEvent { id: number; type: string; ip: string; path: string | null; method: string | null; userAgent: string | null; details: string | null; resolved: boolean; createdAt: string; }
+interface BlockedIp { id: number; ip: string; reason: string | null; blockedBy: number | null; createdAt: string; }
+interface SecurityStats { total: number; unresolved: number; blocked: number; byType: Record<string, number>; }
 
-type Tab = "overview" | "monitors" | "users" | "activity" | "payments" | "settings";
+type Tab = "overview" | "monitors" | "users" | "activity" | "payments" | "settings" | "security";
 
 // ── Email Settings ────────────────────────────────────────────────────────────
 function EmailSection() {
@@ -448,7 +451,25 @@ export default function Admin() {
   const { data: monitors = [], isLoading: loadingMonitors } = useQuery<AdminMonitor[]>({ queryKey: ["admin-monitors"], queryFn: () => apiFetch("/api/admin/monitors"), refetchInterval: 15000 });
   const { data: activity = [], isLoading: loadingActivity } = useQuery<ActivityEntry[]>({ queryKey: ["admin-activity"], queryFn: () => apiFetch("/api/admin/activity"), refetchInterval: 10000, enabled: tab === "activity" });
   const { data: payments = [], isLoading: loadingPayments } = useQuery<PaymentRow[]>({ queryKey: ["admin-payments"], queryFn: () => apiFetch("/api/admin/payments"), refetchInterval: 30000, enabled: tab === "payments" });
+  const { data: securityEvents = [], isLoading: loadingSecEvents } = useQuery<SecurityEvent[]>({ queryKey: ["admin-security-events"], queryFn: () => apiFetch("/api/admin/security/events"), refetchInterval: 15000, enabled: tab === "security" });
+  const { data: blockedIps = [], isLoading: loadingBlockedIps } = useQuery<BlockedIp[]>({ queryKey: ["admin-blocked-ips"], queryFn: () => apiFetch("/api/admin/security/blocked-ips"), refetchInterval: 15000, enabled: tab === "security" });
+  const { data: secStats } = useQuery<SecurityStats>({ queryKey: ["admin-security-stats"], queryFn: () => apiFetch("/api/admin/security/stats"), refetchInterval: 20000 });
 
+  const blockIp = useMutation({
+    mutationFn: ({ ip, reason }: { ip: string; reason?: string }) =>
+      apiFetch("/api/admin/security/block-ip", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ip, reason }) }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-blocked-ips"] }); queryClient.invalidateQueries({ queryKey: ["admin-security-stats"] }); toast({ title: "IP blocked" }); },
+    onError: () => toast({ variant: "destructive", title: "Failed to block IP" }),
+  });
+  const unblockIp = useMutation({
+    mutationFn: (id: number) => fetch(`${BASE}/api/admin/security/blocked-ips/${id}`, { method: "DELETE", credentials: "include" }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-blocked-ips"] }); queryClient.invalidateQueries({ queryKey: ["admin-security-stats"] }); toast({ title: "IP unblocked" }); },
+    onError: () => toast({ variant: "destructive", title: "Failed to unblock IP" }),
+  });
+  const resolveEvent = useMutation({
+    mutationFn: (id: number) => apiFetch(`/api/admin/security/events/${id}/resolve`, { method: "PATCH", headers: { "content-type": "application/json" } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-security-events"] }); queryClient.invalidateQueries({ queryKey: ["admin-security-stats"] }); },
+  });
   const toggleMonitor = useMutation({ mutationFn: (id: number) => apiFetch(`/api/admin/monitors/${id}/toggle`, { method: "PATCH", headers: { "content-type": "application/json" } }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-monitors"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); } });
   const deleteMonitor = useMutation({ mutationFn: (id: number) => fetch(`${BASE}/api/admin/monitors/${id}`, { method: "DELETE", credentials: "include" }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-monitors"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast({ title: "Monitor deleted" }); } });
   const deleteUser = useMutation({ mutationFn: (id: number) => fetch(`${BASE}/api/admin/users/${id}`, { method: "DELETE", credentials: "include" }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast({ title: "User deleted" }); } });
@@ -462,13 +483,14 @@ export default function Admin() {
 
   if (isLoading || !user?.isAdmin) return null;
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+  const tabs: { id: Tab; label: string; icon: React.ElementType; alert?: boolean }[] = [
     { id: "overview", label: "Overview", icon: Activity },
     { id: "monitors", label: `Monitors (${monitors.length})`, icon: Server },
     { id: "users", label: `Users (${users.length})`, icon: Users },
     { id: "activity", label: "Activity", icon: RefreshCw },
     { id: "payments", label: "Payments", icon: CreditCard },
     { id: "settings", label: "Settings", icon: Settings },
+    { id: "security", label: `Security${secStats?.unresolved ? ` (${secStats.unresolved})` : ""}`, icon: Shield, alert: (secStats?.unresolved ?? 0) > 0 },
   ];
 
   return (
@@ -488,10 +510,11 @@ export default function Admin() {
         </div>
 
         <div className="flex gap-1 border-b border-border overflow-x-auto">
-          {tabs.map(({ id, label, icon: Icon }) => (
+          {tabs.map(({ id, label, icon: Icon, alert }) => (
             <button key={id} onClick={() => setTab(id)}
-              className={`flex items-center gap-2 font-mono text-xs uppercase tracking-widest px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${tab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              className={`relative flex items-center gap-2 font-mono text-xs uppercase tracking-widest px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${tab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"} ${alert ? "text-yellow-500" : ""}`}>
               <Icon className="w-3.5 h-3.5" />{label}
+              {alert && <span className="absolute top-2 right-1.5 w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
             </button>
           ))}
         </div>
@@ -669,6 +692,139 @@ export default function Admin() {
                     </tr>
                   ))}
                   {!loadingPayments && payments.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No payments yet</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Security tab */}
+        {tab === "security" && (
+          <div className="space-y-6">
+            {/* Stats row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { label: "Total Events", value: secStats?.total ?? "—", icon: Shield, color: "text-foreground" },
+                { label: "Unresolved", value: secStats?.unresolved ?? "—", icon: AlertTriangle, color: "text-yellow-500" },
+                { label: "Blocked IPs", value: secStats?.blocked ?? "—", icon: Ban, color: "text-destructive" },
+                { label: "Brute Force", value: secStats?.byType?.["brute_force"] ?? 0, icon: XCircle, color: "text-destructive" },
+              ].map(({ label, value, icon: Icon, color }) => (
+                <div key={label} className="border border-border bg-card rounded p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">{label}</span>
+                    <Icon className={`w-4 h-4 ${color} opacity-50`} />
+                  </div>
+                  <div className={`font-display text-5xl leading-none ${color}`}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Security Events */}
+            <div className="border border-border bg-card rounded overflow-hidden">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground">Security Events</h3>
+                <span className="font-mono text-xs text-muted-foreground">Last 200 events · auto-refreshes</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {["Type", "IP Address", "Path", "Details", "User Agent", "Time", ""].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-widest text-muted-foreground font-normal whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {securityEvents.map(ev => {
+                      const TYPE_STYLES: Record<string, string> = {
+                        login_fail:       "bg-yellow-500/10 text-yellow-500 border-yellow-500/25",
+                        brute_force:      "bg-destructive/10 text-destructive border-destructive/25",
+                        rate_limit:       "bg-orange-500/10 text-orange-400 border-orange-500/25",
+                        blocked_ip:       "bg-destructive/10 text-destructive border-destructive/25",
+                        suspicious_agent: "bg-purple-500/10 text-purple-400 border-purple-500/25",
+                      };
+                      const style = TYPE_STYLES[ev.type] ?? "bg-muted/20 text-muted-foreground border-border";
+                      return (
+                        <tr key={ev.id} className={`hover:bg-white/[0.02] ${ev.resolved ? "opacity-40" : ""}`}>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold tracking-widest border ${style}`}>
+                              {ev.type.replace(/_/g, " ").toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-bold text-foreground whitespace-nowrap">{ev.ip}</td>
+                          <td className="px-4 py-3 text-muted-foreground max-w-[120px] truncate">{ev.path ?? "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground max-w-[200px] truncate" title={ev.details ?? ""}>{ev.details ?? "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground max-w-[140px] truncate" title={ev.userAgent ?? ""}>{ev.userAgent ? ev.userAgent.slice(0, 30) + (ev.userAgent.length > 30 ? "…" : "") : "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDistanceToNow(new Date(ev.createdAt), { addSuffix: true })}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1">
+                              {!ev.resolved && (
+                                <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] hover:text-primary whitespace-nowrap" title="Mark resolved" onClick={() => resolveEvent.mutate(ev.id)}>
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                              {!blockedIps.find(b => b.ip === ev.ip) && (
+                                <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] hover:text-destructive whitespace-nowrap"
+                                  title={`Block ${ev.ip}`}
+                                  onClick={() => { if (confirm(`Block IP ${ev.ip}?`)) blockIp.mutate({ ip: ev.ip, reason: `Blocked via security event: ${ev.type}` }); }}>
+                                  <Ban className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {!loadingSecEvents && securityEvents.length === 0 && (
+                      <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No security events yet — that's a good sign.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Blocked IPs */}
+            <div className="border border-border bg-card rounded overflow-hidden">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground">Blocked IPs</h3>
+                <button
+                  className="font-mono text-xs text-primary hover:underline"
+                  onClick={() => {
+                    const ip = prompt("Enter IP address to block:");
+                    if (ip?.trim()) {
+                      const reason = prompt("Reason (optional):") ?? "Manually blocked";
+                      blockIp.mutate({ ip: ip.trim(), reason });
+                    }
+                  }}
+                >
+                  + Block IP
+                </button>
+              </div>
+              <table className="w-full text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-border">
+                    {["IP Address", "Reason", "Blocked", ""].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-widest text-muted-foreground font-normal">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {blockedIps.map(b => (
+                    <tr key={b.id} className="hover:bg-white/[0.02] group">
+                      <td className="px-4 py-3 font-bold text-destructive">{b.ip}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{b.reason ?? "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDistanceToNow(new Date(b.createdAt), { addSuffix: true })}</td>
+                      <td className="px-4 py-3">
+                        <Button variant="ghost" size="sm" className="h-7 px-2 font-mono text-[10px] hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => { if (confirm(`Unblock ${b.ip}?`)) unblockIp.mutate(b.id); }}>
+                          Unblock
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {!loadingBlockedIps && blockedIps.length === 0 && (
+                    <tr><td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">No IPs blocked yet.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
