@@ -21,7 +21,7 @@ interface AdminUser { id: number; name: string; email: string; isAdmin: boolean;
 interface AdminMonitor { id: number; name: string; url: string; intervalMinutes: number; active: boolean; lastStatus: string; lastPingedAt: string | null; lastResponseTimeMs: number | null; userId: number | null; userName: string | null; userEmail: string | null; createdAt: string; }
 interface ActivityEntry { id: number; status: string; responseTimeMs: number | null; statusCode: number | null; error: string | null; createdAt: string; monitorId: number | null; monitorName: string | null; monitorUrl: string | null; userName: string | null; }
 interface EmailSettings { brevoApiKeySet: boolean; brevoApiKeyMasked: string; senderEmail: string; senderName: string; }
-interface BillingSettings { paystackSecretKeySet: boolean; paystackSecretKeyMasked: string; paystackPublicKey: string; planPriceUsd: number; freeMonitorLimit: number; }
+interface BillingSettings { paystackSecretKeySet: boolean; paystackSecretKeyMasked: string; paystackPublicKey: string; paystackCurrency: string; freeMonitorLimit: number; }
 interface PaymentRow { id: number; paystackReference: string; amount: number; currency: string; status: string; plan: string; createdAt: string; userId: number | null; userName: string | null; userEmail: string | null; }
 interface AdminPlan { id: number; slug: string; name: string; durationDays: number; priceUsd: string; monitorLimit: number; isActive: boolean; sortOrder: number; }
 
@@ -121,7 +121,7 @@ function BillingSection() {
   const [showSecret, setShowSecret] = useState(false);
   const [secretKey, setSecretKey] = useState("");
   const [publicKey, setPublicKey] = useState("");
-  const [priceUsd, setPriceUsd] = useState("");
+  const [currency, setCurrency] = useState("KES");
   const [freeLimit, setFreeLimit] = useState("");
 
   const { data: s } = useQuery<BillingSettings>({
@@ -132,7 +132,7 @@ function BillingSection() {
   useEffect(() => {
     if (s) {
       setPublicKey(s.paystackPublicKey);
-      setPriceUsd(String(s.planPriceUsd));
+      setCurrency(s.paystackCurrency || "KES");
       setFreeLimit(String(s.freeMonitorLimit));
       if (s.paystackSecretKeySet && !secretKey) setSecretKey(s.paystackSecretKeyMasked);
     }
@@ -141,7 +141,7 @@ function BillingSection() {
   const save = useMutation({
     mutationFn: () => apiFetch("/api/admin/settings/billing", {
       method: "PUT", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ paystackSecretKey: secretKey, paystackPublicKey: publicKey, planPriceUsd: Number(priceUsd), freeMonitorLimit: Number(freeLimit) }),
+      body: JSON.stringify({ paystackSecretKey: secretKey, paystackPublicKey: publicKey, paystackCurrency: currency, freeMonitorLimit: Number(freeLimit) }),
     }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-billing-settings"] }); toast({ title: "Billing settings saved" }); },
     onError: () => toast({ variant: "destructive", title: "Failed to save" }),
@@ -172,13 +172,17 @@ function BillingSection() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Pro Plan Price (USD)</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-muted-foreground">$</span>
-              <input type="number" min="1" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} placeholder="10"
-                className="w-full bg-background border border-border rounded px-3 py-2.5 pl-7 font-mono text-sm text-foreground focus:outline-none focus:border-primary transition-colors" />
-            </div>
-            <p className="font-mono text-[10px] text-muted-foreground">Converted per user's country currency.</p>
+            <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Paystack Account Currency</label>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)}
+              className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground focus:outline-none focus:border-primary transition-colors">
+              <option value="NGN">NGN — Nigerian Naira</option>
+              <option value="KES">KES — Kenyan Shilling</option>
+              <option value="GHS">GHS — Ghanaian Cedi</option>
+              <option value="ZAR">ZAR — South African Rand</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="GBP">GBP — British Pound</option>
+            </select>
+            <p className="font-mono text-[10px] text-muted-foreground">Must match your Paystack account's supported currency.</p>
           </div>
           <div className="space-y-1.5">
             <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Free Monitor Limit</label>

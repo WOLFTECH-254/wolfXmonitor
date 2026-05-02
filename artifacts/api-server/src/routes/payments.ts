@@ -18,6 +18,8 @@ async function getSettings() {
     secretKey: map.get("paystack_secret_key") ?? "",
     publicKey: map.get("paystack_public_key") ?? "",
     freeLimit: Number(map.get("free_monitor_limit") ?? "5"),
+    // Merchant's Paystack account currency — must match what the account supports
+    merchantCurrency: map.get("paystack_currency") ?? "KES",
   };
 }
 
@@ -48,8 +50,8 @@ router.get("/payments/config", requireAuth, async (req, res) => {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-  const countryCode = user.country?.toUpperCase().slice(0, 2) ?? "US";
-  const currency = CURRENCY_MAP[countryCode] ?? "USD";
+  // Always charge in the merchant's configured Paystack currency (not the user's country currency)
+  const currency = settings.merchantCurrency;
 
   let exchangeRate = 1;
   if (currency !== "USD") {

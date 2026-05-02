@@ -247,21 +247,21 @@ router.get("/admin/settings/billing", requireAdmin, async (_req, res) => {
     paystackSecretKeySet: rawSecret.length > 0,
     paystackSecretKeyMasked: maskedSecret,
     paystackPublicKey: rawPublic,
-    planPriceUsd: Number(map.get("plan_price_usd") ?? "10"),
+    paystackCurrency: map.get("paystack_currency") ?? "KES",
     freeMonitorLimit: Number(map.get("free_monitor_limit") ?? "5"),
   });
 });
 
 router.put("/admin/settings/billing", requireAdmin, async (req, res) => {
-  const { paystackSecretKey, paystackPublicKey, planPriceUsd, freeMonitorLimit } = req.body as {
+  const { paystackSecretKey, paystackPublicKey, paystackCurrency, freeMonitorLimit } = req.body as {
     paystackSecretKey?: string; paystackPublicKey?: string;
-    planPriceUsd?: number; freeMonitorLimit?: number;
+    paystackCurrency?: string; freeMonitorLimit?: number;
   };
   if (paystackSecretKey && paystackSecretKey.trim() && !paystackSecretKey.includes("•")) {
     await upsertSetting("paystack_secret_key", paystackSecretKey.trim());
   }
   if (paystackPublicKey?.trim()) await upsertSetting("paystack_public_key", paystackPublicKey.trim());
-  if (planPriceUsd !== undefined && planPriceUsd > 0) await upsertSetting("plan_price_usd", String(planPriceUsd));
+  if (paystackCurrency?.trim()) await upsertSetting("paystack_currency", paystackCurrency.trim());
   if (freeMonitorLimit !== undefined && freeMonitorLimit > 0) await upsertSetting("free_monitor_limit", String(freeMonitorLimit));
   res.json({ ok: true });
 });
