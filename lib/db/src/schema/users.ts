@@ -10,6 +10,8 @@ export const usersTable = pgTable("users", {
   isAdmin: boolean("is_admin").notNull().default(false),
   country: text("country"),
   plan: text("plan").notNull().default("free"),
+  planSlug: text("plan_slug"),
+  planExpiresAt: timestamp("plan_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

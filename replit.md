@@ -50,7 +50,11 @@ A full-stack multi-user uptime monitoring SaaS. Pings URLs at configurable inter
 
 ### Plans
 - **Free**: up to N monitors (admin-configurable, default 5)
-- **Pro**: unlimited monitors (one-time Paystack payment, local currency via exchange rate API)
+- **Pro**: unlimited monitors — choose from 5 durations (Weekly/Monthly/3-Month/6-Month/Yearly)
+  - Each plan stores `plan_slug` + `plan_expires_at` on the user record
+  - Prices in USD, auto-converted to local currency at checkout via exchange rate API
+  - Kenyan users (KES) get M-Pesa STK Push option via Paystack channels
+  - Admin can configure per-plan pricing, toggle active/inactive in Admin → Payments tab
 
 ## Architecture
 
@@ -69,8 +73,10 @@ lib/
 - `users` — id, name, email, password_hash, notification_email, notifications_enabled, is_admin, country, plan, created_at
 - `monitors` — id, user_id, name, url, interval_minutes, active, last_status, last_pinged_at, last_response_time_ms, created_at
 - `pings` — id, monitor_id, status, response_time_ms, status_code, error, created_at
-- `settings` — key, value, updated_at (keys: brevo_api_key, brevo_sender_email, brevo_sender_name, paystack_secret_key, paystack_public_key, plan_price_usd, free_monitor_limit)
+- `settings` — key, value, updated_at (keys: brevo_api_key, brevo_sender_email, brevo_sender_name, paystack_secret_key, paystack_public_key, free_monitor_limit)
 - `payments` — id, user_id, paystack_reference, amount, currency, status, plan, created_at
+- `plans` — id, slug, name, duration_days, price_usd, monitor_limit, is_active, sort_order, created_at
+- `users` also has: `plan_slug` (weekly/monthly/quarterly/biannual/yearly), `plan_expires_at`
 - `user_sessions` — managed by connect-pg-simple (created manually, NOT via Drizzle push)
 
 ## Key Commands

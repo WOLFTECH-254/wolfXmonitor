@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, monitorsTable, pingsTable, usersTable, settingsTable, paymentsTable } from "@workspace/db";
-import { desc, count, eq, sql } from "drizzle-orm";
+import { db, monitorsTable, pingsTable, usersTable, settingsTable, paymentsTable, plansTable } from "@workspace/db";
+import { desc, count, eq, sql, asc } from "drizzle-orm";
 import axios from "axios";
 import { requireAdmin } from "../middlewares/admin";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
@@ -145,6 +145,29 @@ router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.status(204).send();
+});
+
+// ── Plans CRUD ───────────────────────────────────────────────────────────────
+
+router.get("/admin/plans", requireAdmin, async (_req, res) => {
+  const plans = await db.select().from(plansTable).orderBy(asc(plansTable.sortOrder));
+  res.json(plans);
+});
+
+router.put("/admin/plans/:slug", requireAdmin, async (req, res) => {
+  const { slug } = req.params;
+  const { priceUsd, monitorLimit, isActive, name } = req.body as {
+    priceUsd?: number; monitorLimit?: number; isActive?: boolean; name?: string;
+  };
+  const set: Record<string, unknown> = {};
+  if (priceUsd !== undefined && priceUsd >= 0) set.priceUsd = String(priceUsd);
+  if (monitorLimit !== undefined) set.monitorLimit = monitorLimit;
+  if (isActive !== undefined) set.isActive = isActive;
+  if (name?.trim()) set.name = name.trim();
+
+  const [updated] = await db.update(plansTable).set(set).where(eq(plansTable.slug, slug)).returning();
+  if (!updated) { res.status(404).json({ error: "Plan not found" }); return; }
+  res.json(updated);
 });
 
 // ── Payments ────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ interface ActivityEntry { id: number; status: string; responseTimeMs: number | n
 interface EmailSettings { brevoApiKeySet: boolean; brevoApiKeyMasked: string; senderEmail: string; senderName: string; }
 interface BillingSettings { paystackSecretKeySet: boolean; paystackSecretKeyMasked: string; paystackPublicKey: string; planPriceUsd: number; freeMonitorLimit: number; }
 interface PaymentRow { id: number; paystackReference: string; amount: number; currency: string; status: string; plan: string; createdAt: string; userId: number | null; userName: string | null; userEmail: string | null; }
+interface AdminPlan { id: number; slug: string; name: string; durationDays: number; priceUsd: string; monitorLimit: number; isActive: boolean; sortOrder: number; }
 
 type Tab = "overview" | "monitors" | "users" | "activity" | "payments" | "settings";
 
@@ -285,6 +286,122 @@ function FooterSection() {
   );
 }
 
+// ── Plans Section ─────────────────────────────────────────────────────────────
+function PlansSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: plans = [], isLoading } = useQuery<AdminPlan[]>({
+    queryKey: ["admin-plans"],
+    queryFn: () => apiFetch("/api/admin/plans"),
+  });
+
+  const [edits, setEdits] = useState<Record<string, { priceUsd: string; isActive: boolean }>>({});
+
+  useEffect(() => {
+    if (plans.length > 0) {
+      const initial: Record<string, { priceUsd: string; isActive: boolean }> = {};
+      plans.forEach((p) => {
+        initial[p.slug] = { priceUsd: parseFloat(p.priceUsd).toFixed(2), isActive: p.isActive };
+      });
+      setEdits(initial);
+    }
+  }, [plans]);
+
+  const savePlan = useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: { priceUsd: number; isActive: boolean } }) =>
+      apiFetch(`/api/admin/plans/${slug}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["public-plans"] });
+      toast({ title: "Plan updated" });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to save plan" }),
+  });
+
+  const DURATION_LABELS: Record<string, string> = {
+    weekly: "7 days", monthly: "30 days", quarterly: "90 days",
+    biannual: "180 days", yearly: "365 days",
+  };
+
+  if (isLoading) return <div className="animate-pulse font-mono text-xs text-muted-foreground">Loading plans…</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">Plan Configuration</h3>
+        <span className="font-mono text-[10px] text-muted-foreground">Prices in USD · auto-converted per user's country</span>
+      </div>
+      <div className="border border-border rounded overflow-hidden">
+        <table className="w-full text-xs font-mono">
+          <thead>
+            <tr className="border-b border-border bg-muted/10">
+              {["Plan", "Duration", "Price (USD)", "Monitor Limit", "Active", ""].map(h => (
+                <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-widest text-muted-foreground font-normal">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {plans.map((plan) => {
+              const edit = edits[plan.slug] ?? { priceUsd: parseFloat(plan.priceUsd).toFixed(2), isActive: plan.isActive };
+              return (
+                <tr key={plan.slug} className="hover:bg-white/[0.02]">
+                  <td className="px-4 py-3">
+                    <div className="font-bold text-foreground">{plan.name}</div>
+                    <div className="text-muted-foreground text-[10px] uppercase tracking-widest">{plan.slug}</div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{DURATION_LABELS[plan.slug] ?? `${plan.durationDays}d`}</td>
+                  <td className="px-4 py-3">
+                    <div className="relative w-28">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={edit.priceUsd}
+                        onChange={(e) => setEdits((prev) => ({ ...prev, [plan.slug]: { ...edit, priceUsd: e.target.value } }))}
+                        className="w-full bg-background border border-border rounded px-2.5 py-1.5 pl-6 font-mono text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
+                      />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-primary font-bold">{plan.monitorLimit === -1 ? "Unlimited" : plan.monitorLimit}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => setEdits((prev) => ({ ...prev, [plan.slug]: { ...edit, isActive: !edit.isActive } }))}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${edit.isActive ? "bg-primary" : "bg-muted"}`}
+                    >
+                      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${edit.isActive ? "translate-x-5" : "translate-x-0.5"}`} />
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      size="sm"
+                      onClick={() => savePlan.mutate({ slug: plan.slug, data: { priceUsd: parseFloat(edit.priceUsd) || 0, isActive: edit.isActive } })}
+                      disabled={savePlan.isPending}
+                      className="font-mono text-[10px] h-7 px-3"
+                    >
+                      Save
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="font-mono text-[10px] text-muted-foreground">
+        * Prices are converted to the user's local currency (NGN, KES, GHS, ZAR, etc.) at live exchange rates when the user loads the upgrade page.
+      </p>
+    </div>
+  );
+}
+
 // ── Main Admin Component ──────────────────────────────────────────────────────
 export default function Admin() {
   const { user, isLoading } = useAuth();
@@ -492,7 +609,10 @@ export default function Admin() {
 
         {/* Payments tab */}
         {tab === "payments" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            <div className="border border-border bg-card rounded p-6">
+              <PlansSection />
+            </div>
             <div className="border border-border bg-card rounded overflow-hidden">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                 <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground">Recent Payments</h3>
