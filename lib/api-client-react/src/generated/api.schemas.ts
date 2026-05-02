@@ -70,6 +70,11 @@ export interface MonitorStats {
   upPings: number;
   downPings: number;
   last24hUptimePercent: number;
+  last7dUptimePercent: number;
+  last30dUptimePercent: number;
+  incidentCount24h: number;
+  incidentCount7d: number;
+  incidentCount30d: number;
 }
 
 export interface DashboardSummary {

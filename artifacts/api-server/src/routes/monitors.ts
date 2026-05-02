@@ -160,22 +160,49 @@ router.get("/monitors/:id/stats", requireAuth, async (req, res) => {
     .from(pingsTable)
     .where(eq(pingsTable.monitorId, id));
 
-  const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const now = Date.now();
+  const cutoff24h = new Date(now - 24 * 60 * 60 * 1000);
+  const cutoff7d  = new Date(now - 7  * 24 * 60 * 60 * 1000);
+  const cutoff30d = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
   const [totals24h] = await db
-    .select({
-      total: count(),
-      up: sql<number>`count(*) filter (where ${pingsTable.status} = 'up')`,
-    })
+    .select({ total: count(), up: sql<number>`count(*) filter (where ${pingsTable.status} = 'up')` })
     .from(pingsTable)
     .where(and(eq(pingsTable.monitorId, id), gte(pingsTable.createdAt, cutoff24h)));
+
+  const [totals7d] = await db
+    .select({ total: count(), up: sql<number>`count(*) filter (where ${pingsTable.status} = 'up')` })
+    .from(pingsTable)
+    .where(and(eq(pingsTable.monitorId, id), gte(pingsTable.createdAt, cutoff7d)));
+
+  const [totals30d] = await db
+    .select({ total: count(), up: sql<number>`count(*) filter (where ${pingsTable.status} = 'up')` })
+    .from(pingsTable)
+    .where(and(eq(pingsTable.monitorId, id), gte(pingsTable.createdAt, cutoff30d)));
+
+  // Count incidents (down→up transitions) per window using raw SQL
+  const incidentQuery = await db.execute(sql`
+    WITH ordered AS (
+      SELECT status, created_at,
+        LAG(status) OVER (ORDER BY created_at) AS prev_status
+      FROM pings WHERE monitor_id = ${id}
+    )
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'down' AND (prev_status = 'up' OR prev_status IS NULL) AND created_at >= ${cutoff24h}) AS inc_24h,
+      COUNT(*) FILTER (WHERE status = 'down' AND (prev_status = 'up' OR prev_status IS NULL) AND created_at >= ${cutoff7d})  AS inc_7d,
+      COUNT(*) FILTER (WHERE status = 'down' AND (prev_status = 'up' OR prev_status IS NULL) AND created_at >= ${cutoff30d}) AS inc_30d
+    FROM ordered
+  `);
+  const inc = (incidentQuery.rows?.[0] ?? {}) as Record<string, unknown>;
 
   const totalPings = Number(totals?.totalPings ?? 0);
   const upPings = Number(totals?.upPings ?? 0);
   const downPings = totalPings - upPings;
   const uptimePercent = totalPings > 0 ? (upPings / totalPings) * 100 : 100;
-  const total24h = Number(totals24h?.total ?? 0);
-  const up24h = Number(totals24h?.up ?? 0);
-  const last24hUptimePercent = total24h > 0 ? (up24h / total24h) * 100 : 100;
+
+  const t24 = Number(totals24h?.total ?? 0); const u24 = Number(totals24h?.up ?? 0);
+  const t7  = Number(totals7d?.total  ?? 0); const u7  = Number(totals7d?.up  ?? 0);
+  const t30 = Number(totals30d?.total ?? 0); const u30 = Number(totals30d?.up ?? 0);
 
   res.json({
     monitorId: id,
@@ -184,7 +211,12 @@ router.get("/monitors/:id/stats", requireAuth, async (req, res) => {
     totalPings,
     upPings,
     downPings,
-    last24hUptimePercent,
+    last24hUptimePercent: t24 > 0 ? (u24 / t24) * 100 : 100,
+    last7dUptimePercent:  t7  > 0 ? (u7  / t7)  * 100 : 100,
+    last30dUptimePercent: t30 > 0 ? (u30 / t30) * 100 : 100,
+    incidentCount24h: Number(inc.inc_24h ?? 0),
+    incidentCount7d:  Number(inc.inc_7d  ?? 0),
+    incidentCount30d: Number(inc.inc_30d ?? 0),
   });
 });
 

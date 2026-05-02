@@ -15,25 +15,50 @@ import {
 import { useParams, useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Activity, Server, Trash2, RefreshCw, Pause, Play } from "lucide-react";
+import { ArrowLeft, RefreshCw, Pause, Play, Trash2, ExternalLink, Globe } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, formatDuration, intervalToDuration } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip,
-  ResponsiveContainer, LineChart, Line, Cell
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip,
 } from "recharts";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+function UptimeBar({ pings }: { pings: Array<{ status: string }> }) {
+  if (!pings.length) return <div className="text-muted-foreground font-mono text-xs">No data</div>;
+  const recent = [...pings].slice(0, 90).reverse();
+  return (
+    <div className="flex gap-[2px] items-end h-8">
+      {recent.map((p, i) => (
+        <div
+          key={i}
+          className={`flex-1 rounded-sm min-w-[3px] h-full ${p.status === "up" ? "bg-primary/80" : "bg-destructive/80"}`}
+          title={p.status === "up" ? "Up" : "Down"}
+        />
+      ))}
+    </div>
+  );
+}
+
+function UptimeStat({
+  label, percent, incidents, subLabel
+}: { label: string; percent: number; incidents: number; subLabel?: string }) {
+  const color = percent >= 99 ? "text-primary" : percent >= 95 ? "text-yellow-400" : "text-destructive";
+  return (
+    <div className="border border-border bg-card rounded p-4 space-y-1">
+      <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">{label}</div>
+      <div className={`font-display text-3xl leading-none ${color}`}>{percent.toFixed(3)}%</div>
+      <div className="font-mono text-[10px] text-muted-foreground">
+        {incidents > 0 ? `${incidents} incident${incidents !== 1 ? "s" : ""}` : "No incidents"}
+        {subLabel && <span className="ml-1">{subLabel}</span>}
+      </div>
+    </div>
+  );
+}
 
 export default function MonitorDetail() {
   const { id: idStr } = useParams();
@@ -60,8 +85,8 @@ export default function MonitorDetail() {
     deleteMonitor.mutate({ id }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListMonitorsQueryKey() });
-        toast({ title: "Monitor deleted", description: "Endpoint removed." });
-        setLocation("/dashboard");
+        toast({ title: "Monitor deleted" });
+        setLocation("/monitoring");
       },
       onError: () => toast({ variant: "destructive", title: "Error", description: "Failed to delete monitor." })
     });
@@ -73,7 +98,7 @@ export default function MonitorDetail() {
         queryClient.invalidateQueries({ queryKey: getGetMonitorQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getGetMonitorStatsQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getGetMonitorPingsQueryKey(id) });
-        toast({ title: "Ping sent", description: "Successfully pinged the monitor." });
+        toast({ title: "Ping sent" });
       }
     });
   };
@@ -94,89 +119,101 @@ export default function MonitorDetail() {
     return (
       <Layout>
         <div className="space-y-6">
-          <Skeleton className="h-14 w-1/2" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid grid-cols-3 gap-3">
+            {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded" />)}
+          </div>
+          <div className="grid grid-cols-4 gap-3">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded" />)}
           </div>
-          <Skeleton className="h-[280px] w-full rounded" />
+          <Skeleton className="h-[240px] w-full rounded" />
         </div>
       </Layout>
     );
   }
 
+  const isDown = monitor.lastStatus === "down";
+  const isUp = monitor.lastStatus === "up";
   const reversedPings = pings ? [...pings].reverse() : [];
-  const pingChartData = reversedPings.map(p => ({
+
+  const chartData = reversedPings.map(p => ({
     time: format(new Date(p.createdAt), "HH:mm"),
+    responseTime: p.responseTimeMs ?? null,
     status: p.status,
-    responseTime: p.responseTimeMs ?? 0,
-    fullDate: new Date(p.createdAt).toLocaleString(),
-    error: p.error
   }));
 
-  const statusClass = monitor.lastStatus === "up" ? "up" : monitor.lastStatus === "down" ? "down" : "unknown";
+  const downSince = (() => {
+    if (!isDown || !pings) return null;
+    for (const p of pings) {
+      if (p.status === "up") return p.createdAt;
+    }
+    return null;
+  })();
+
+  const currentStatusDuration = (() => {
+    if (!monitor.lastPingedAt) return null;
+    const ref = downSince ?? monitor.lastPingedAt;
+    return formatDuration(intervalToDuration({ start: new Date(ref), end: new Date() }), { format: ["days", "hours", "minutes"] }) || "just now";
+  })();
 
   return (
     <Layout>
-      <div className="space-y-8">
-
-        {/* Header */}
-        <div className="pb-6 border-b border-border">
-          <div className="flex items-center gap-3 mb-4">
-            <Link href="/dashboard">
-              <button className="w-8 h-8 rounded border border-border bg-card hover:border-primary/50 flex items-center justify-center transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-            </Link>
-            <p className="font-mono text-xs text-primary uppercase tracking-widest">Monitor Detail</p>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="font-display text-5xl uppercase tracking-wide text-foreground leading-none">
-                  {monitor.name}
-                </h1>
-                <span className={`status-dot ${statusClass}`} />
+      <div className="space-y-6">
+        {/* Breadcrumb + header */}
+        <div>
+          <Link href="/monitoring">
+            <button className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-primary transition-colors mb-4">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Monitoring
+            </button>
+          </Link>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-4 h-4 rounded-full shrink-0 ${isDown ? "bg-destructive" : isUp ? "bg-primary" : "bg-muted-foreground/40"}`} />
+              <div className="min-w-0">
+                <h1 className="font-display text-2xl text-foreground leading-none truncate">{monitor.name}</h1>
+                <a
+                  href={monitor.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-primary transition-colors mt-0.5"
+                >
+                  {monitor.url}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
-              <a
-                href={monitor.url}
-                target="_blank"
-                rel="noreferrer"
-                className="font-mono text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                {monitor.url}
-              </a>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-mono border-border bg-card hover:border-primary/50 h-9"
-                onClick={handleToggle}
-                disabled={updateMonitor.isPending}
-              >
-                {monitor.active ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                {monitor.active ? "Pause" : "Resume"}
-              </Button>
               <button
-                className="flex items-center gap-2 font-mono text-sm border border-border bg-card hover:border-primary/50 transition-colors px-4 py-2 rounded disabled:opacity-50"
+                className="flex items-center gap-2 font-mono text-xs border border-border bg-card hover:border-primary/50 transition-colors px-3 py-2 rounded disabled:opacity-50"
                 onClick={handlePing}
                 disabled={triggerPing.isPending}
               >
-                <RefreshCw className={`w-4 h-4 ${triggerPing.isPending ? "animate-spin" : ""}`} />
-                Ping Now
+                <RefreshCw className={`w-3.5 h-3.5 ${triggerPing.isPending ? "animate-spin" : ""}`} />
+                Test
               </button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-mono text-xs border-border bg-card hover:border-primary/50 h-8"
+                onClick={handleToggle}
+                disabled={updateMonitor.isPending}
+              >
+                {monitor.active ? <Pause className="w-3.5 h-3.5 mr-1.5" /> : <Play className="w-3.5 h-3.5 mr-1.5" />}
+                {monitor.active ? "Pause" : "Resume"}
+              </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="font-mono h-9">
-                    <Trash2 className="w-4 h-4 mr-2" />
+                  <Button variant="destructive" size="sm" className="font-mono text-xs h-8">
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                     Delete
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-card border-border">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="font-display text-2xl uppercase tracking-wide">Delete Monitor?</AlertDialogTitle>
+                    <AlertDialogTitle className="font-display text-xl uppercase">Delete Monitor?</AlertDialogTitle>
                     <AlertDialogDescription className="font-mono text-sm text-muted-foreground">
-                      This will permanently delete "{monitor.name}" and all its ping history. This cannot be undone.
+                      This will permanently delete "{monitor.name}" and all its history. Cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -191,133 +228,176 @@ export default function MonitorDetail() {
           </div>
         </div>
 
-        {/* Stats */}
-        {stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[
-              { label: "Uptime (24h)", value: `${stats.last24hUptimePercent.toFixed(1)}%`, color: "text-primary" },
-              { label: "Avg Response", value: stats.avgResponseTimeMs ? `${Math.round(stats.avgResponseTimeMs)}ms` : "--", color: "text-foreground" },
-              { label: "Last Checked", value: monitor.lastPingedAt ? formatDistanceToNow(new Date(monitor.lastPingedAt), { addSuffix: true }) : "Never", color: "text-foreground", small: true },
-              { label: "Total Pings", value: stats.totalPings, color: "text-foreground" },
-            ].map(({ label, value, color, small }) => (
-              <div key={label} className="border border-border bg-card rounded p-5 card-hover">
-                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-4">{label}</div>
-                <div className={`font-display leading-none ${color} ${small ? "text-2xl mt-1" : "text-5xl"}`}>{value}</div>
-                {label === "Total Pings" && (
-                  <div className="font-mono text-xs text-muted-foreground mt-2">
-                    <span className="text-primary">{stats.upPings} up</span>
-                    <span className="mx-1 opacity-30">/</span>
-                    <span className="text-destructive">{stats.downPings} down</span>
-                  </div>
+        {/* Top 3 stat cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Current status */}
+          <div className="border border-border bg-card rounded p-5 space-y-1">
+            <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Current Status</div>
+            {isDown ? (
+              <>
+                <div className="font-display text-4xl text-destructive leading-none">Down</div>
+                {currentStatusDuration && (
+                  <div className="font-mono text-xs text-muted-foreground">Down for {currentStatusDuration}</div>
                 )}
+                <Link href="/incidents">
+                  <span className="inline-block font-mono text-[10px] text-primary hover:underline cursor-pointer mt-1">View Incident →</span>
+                </Link>
+              </>
+            ) : isUp ? (
+              <>
+                <div className="font-display text-4xl text-primary leading-none">Up</div>
+                {currentStatusDuration && (
+                  <div className="font-mono text-xs text-muted-foreground">Operational for {currentStatusDuration}</div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="font-display text-4xl text-muted-foreground leading-none">Unknown</div>
+                <div className="font-mono text-xs text-muted-foreground">No ping yet</div>
+              </>
+            )}
+          </div>
+
+          {/* Last check */}
+          <div className="border border-border bg-card rounded p-5 space-y-1">
+            <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Last Check</div>
+            <div className="font-display text-2xl text-foreground leading-tight">
+              {monitor.lastPingedAt
+                ? formatDistanceToNow(new Date(monitor.lastPingedAt), { addSuffix: true })
+                : "Never"}
+            </div>
+            <div className="font-mono text-xs text-muted-foreground">Checked every {monitor.intervalMinutes}m</div>
+            {monitor.lastResponseTimeMs && (
+              <div className="font-mono text-xs text-primary">{monitor.lastResponseTimeMs}ms response</div>
+            )}
+          </div>
+
+          {/* Last 24 hours */}
+          <div className="border border-border bg-card rounded p-5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Last 24 Hours</div>
+              {stats && (
+                <span className={`font-mono text-xs font-bold ${stats.last24hUptimePercent >= 99 ? "text-primary" : stats.last24hUptimePercent >= 95 ? "text-yellow-400" : "text-destructive"}`}>
+                  {stats.last24hUptimePercent.toFixed(2)}%
+                </span>
+              )}
+            </div>
+            <UptimeBar pings={pings ?? []} />
+            {stats && (
+              <div className="font-mono text-[10px] text-muted-foreground">
+                {stats.incidentCount24h > 0
+                  ? `${stats.incidentCount24h} incident${stats.incidentCount24h !== 1 ? "s" : ""}`
+                  : "No incidents"}
               </div>
-            ))}
+            )}
+          </div>
+        </div>
+
+        {/* Uptime windows row */}
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <UptimeStat
+              label="Last 7 Days"
+              percent={stats.last7dUptimePercent ?? stats.last24hUptimePercent}
+              incidents={stats.incidentCount7d ?? 0}
+            />
+            <UptimeStat
+              label="Last 30 Days"
+              percent={stats.last30dUptimePercent ?? stats.last24hUptimePercent}
+              incidents={stats.incidentCount30d ?? 0}
+            />
+            <div className="border border-border bg-card rounded p-4 space-y-1">
+              <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">Avg Response</div>
+              <div className="font-display text-3xl leading-none text-foreground">
+                {stats.avgResponseTimeMs ? `${Math.round(stats.avgResponseTimeMs)}ms` : "—"}
+              </div>
+              <div className="font-mono text-[10px] text-muted-foreground">{stats.totalPings} total pings</div>
+            </div>
+            <div className="border border-border bg-card rounded p-4 space-y-1">
+              <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                <Globe className="w-3 h-3" />
+                Region
+              </div>
+              <div className="font-display text-xl leading-none text-foreground">Global</div>
+              <div className="font-mono text-[10px] text-muted-foreground">HTTP/S monitor</div>
+              <div className="font-mono text-[10px] text-muted-foreground">
+                {stats.upPings} up · {stats.downPings} down
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="border border-border bg-card rounded p-6 card-hover">
-            <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground mb-5 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" />
-              Response Time
-            </h3>
-            <div className="h-[240px]">
-              {pingChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={pingChartData}>
-                    <XAxis dataKey="time" stroke="#444" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#444" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `${v}ms`} />
-                    <RechartsTooltip
-                      contentStyle={{ backgroundColor: "hsl(0 0% 6%)", borderColor: "hsl(0 0% 15%)", fontFamily: "var(--app-font-mono)", fontSize: "11px" }}
-                      itemStyle={{ color: "hsl(var(--primary))" }}
-                      labelStyle={{ color: "hsl(var(--muted-foreground))" }}
-                      formatter={(value: number) => [`${value}ms`, "Response"]}
-                    />
-                    <Line type="monotone" dataKey="responseTime" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "hsl(var(--primary))" }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center font-mono text-sm text-muted-foreground">No data yet</div>
-              )}
-            </div>
-          </div>
-
-          <div className="border border-border bg-card rounded p-6 card-hover">
-            <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground mb-5 flex items-center gap-2">
-              <Server className="w-4 h-4 text-primary" />
-              Uptime History
-            </h3>
-            <div className="h-[240px]">
-              {pingChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={pingChartData} barGap={1}>
-                    <XAxis dataKey="time" stroke="#444" fontSize={11} tickLine={false} axisLine={false} />
-                    <RechartsTooltip
-                      contentStyle={{ backgroundColor: "hsl(0 0% 6%)", borderColor: "hsl(0 0% 15%)", fontFamily: "var(--app-font-mono)", fontSize: "11px" }}
-                      cursor={{ fill: "hsl(0 0% 10%)" }}
-                      formatter={(value: unknown, _: string, props: { payload?: { status: string } }) => [
-                        props.payload?.status?.toUpperCase() ?? "--",
-                        "Status"
-                      ]}
-                    />
-                    <Bar dataKey="responseTime" radius={[2, 2, 0, 0]} maxBarSize={16}>
-                      {pingChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.status === "up" ? "hsl(var(--primary))" : "hsl(var(--destructive))"} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center font-mono text-sm text-muted-foreground">No data yet</div>
-              )}
-            </div>
+        {/* Response time chart */}
+        <div className="border border-border bg-card rounded p-5">
+          <h3 className="font-display text-base uppercase tracking-wide text-muted-foreground mb-4">
+            Response Time — All Regions
+          </h3>
+          <div className="h-[200px]">
+            {chartData.filter(d => d.responseTime !== null).length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <XAxis dataKey="time" stroke="#333" fontSize={10} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                  <YAxis stroke="#333" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `${v}ms`} width={48} />
+                  <RechartsTooltip
+                    contentStyle={{ backgroundColor: "hsl(0 0% 6%)", borderColor: "hsl(0 0% 15%)", fontFamily: "var(--app-font-mono)", fontSize: "11px" }}
+                    itemStyle={{ color: "hsl(var(--primary))" }}
+                    labelStyle={{ color: "hsl(var(--muted-foreground))" }}
+                    formatter={(value: number) => [`${value}ms`, "Response"]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="responseTime"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={1.5}
+                    dot={false}
+                    activeDot={{ r: 3, fill: "hsl(var(--primary))" }}
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center font-mono text-sm text-muted-foreground">No data yet</div>
+            )}
           </div>
         </div>
 
         {/* Ping log table */}
-        <div className="border border-border bg-card rounded overflow-hidden card-hover">
-          <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-            <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground">Recent Ping Logs</h3>
+        <div className="border border-border bg-card rounded overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <h3 className="font-display text-base uppercase tracking-wide text-muted-foreground">Recent Pings</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm font-mono text-left">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="px-5 py-3 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Timestamp</th>
-                  <th className="px-5 py-3 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
-                  <th className="px-5 py-3 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Response</th>
-                  <th className="px-5 py-3 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Code</th>
-                  <th className="px-5 py-3 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Error</th>
+                <tr className="border-b border-border bg-card/40">
+                  <th className="px-5 py-2.5 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Timestamp</th>
+                  <th className="px-5 py-2.5 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
+                  <th className="px-5 py-2.5 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Response</th>
+                  <th className="px-5 py-2.5 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Code</th>
+                  <th className="px-5 py-2.5 font-normal text-[10px] uppercase tracking-widest text-muted-foreground">Error</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {pings?.slice(0, 20).map((ping) => (
+                {pings?.slice(0, 25).map((ping) => (
                   <tr key={ping.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-5 py-3 whitespace-nowrap text-muted-foreground text-xs">
+                    <td className="px-5 py-2.5 whitespace-nowrap text-muted-foreground text-xs">
                       {format(new Date(ping.createdAt), "MMM d, HH:mm:ss")}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-2.5">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold tracking-widest border ${ping.status === "up" ? "bg-primary/10 text-primary border-primary/25" : "bg-destructive/10 text-destructive border-destructive/25"}`}>
                         {ping.status.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-5 py-3 whitespace-nowrap text-xs">
-                      {ping.responseTimeMs ? <span className="text-primary">{ping.responseTimeMs}ms</span> : <span className="text-muted-foreground">--</span>}
+                    <td className="px-5 py-2.5 whitespace-nowrap text-xs">
+                      {ping.responseTimeMs ? <span className="text-primary">{ping.responseTimeMs}ms</span> : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
-                      {ping.statusCode ?? "--"}
-                    </td>
-                    <td className="px-5 py-3 text-destructive text-xs truncate max-w-[200px]">
-                      {ping.error ?? "--"}
-                    </td>
+                    <td className="px-5 py-2.5 whitespace-nowrap text-xs text-muted-foreground">{ping.statusCode ?? "—"}</td>
+                    <td className="px-5 py-2.5 text-destructive text-xs truncate max-w-[200px]">{ping.error ?? "—"}</td>
                   </tr>
                 ))}
                 {!pings?.length && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground font-mono text-sm">
-                      No logs available
-                    </td>
+                    <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground font-mono text-sm">No logs yet</td>
                   </tr>
                 )}
               </tbody>

@@ -15,6 +15,7 @@ import StatusPage from "@/pages/status";
 import InstancePage from "@/pages/instance";
 import Upgrade from "@/pages/upgrade";
 import Incidents from "@/pages/incidents";
+import Monitoring from "@/pages/monitoring";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -59,6 +60,9 @@ function Router() {
       <Route path="/signup" component={SignUp} />
       <Route path="/dashboard">
         {() => <ProtectedRoute component={Dashboard} />}
+      </Route>
+      <Route path="/monitoring">
+        {() => <ProtectedRoute component={Monitoring} />}
       </Route>
       <Route path="/monitors/new">
         {() => <ProtectedRoute component={MonitorNew} />}

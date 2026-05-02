@@ -136,6 +136,11 @@ export const GetMonitorStatsResponse = zod.object({
   upPings: zod.number(),
   downPings: zod.number(),
   last24hUptimePercent: zod.number(),
+  last7dUptimePercent: zod.number(),
+  last30dUptimePercent: zod.number(),
+  incidentCount24h: zod.number(),
+  incidentCount7d: zod.number(),
+  incidentCount30d: zod.number(),
 });
 
 /**

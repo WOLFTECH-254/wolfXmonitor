@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Activity, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown } from "lucide-react";
+import { Radio, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard, Activity } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -34,8 +34,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
               variant={location === "/dashboard" ? "secondary" : "ghost"}
               className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
             >
-              <Activity className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4" />
               Dashboard
+            </Button>
+          </Link>
+          <Link href="/monitoring">
+            <Button
+              variant={location === "/monitoring" || location.startsWith("/monitors/") ? "secondary" : "ghost"}
+              className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
+            >
+              <Radio className="w-4 h-4" />
+              Monitoring
             </Button>
           </Link>
           <Link href="/monitors/new">

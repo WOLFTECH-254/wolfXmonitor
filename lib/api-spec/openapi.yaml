@@ -316,6 +316,16 @@ components:
           type: integer
         last24hUptimePercent:
           type: number
+        last7dUptimePercent:
+          type: number
+        last30dUptimePercent:
+          type: number
+        incidentCount24h:
+          type: integer
+        incidentCount7d:
+          type: integer
+        incidentCount30d:
+          type: integer
       required:
         - monitorId
         - uptimePercent
@@ -323,6 +333,11 @@ components:
         - upPings
         - downPings
         - last24hUptimePercent
+        - last7dUptimePercent
+        - last30dUptimePercent
+        - incidentCount24h
+        - incidentCount7d
+        - incidentCount30d
 
     DashboardSummary:
       type: object
