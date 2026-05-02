@@ -106,9 +106,14 @@ export function Footer() {
           <p className="font-mono text-[10px] text-muted-foreground/60 uppercase tracking-widest">
             © {year} wolfXmonitor. All rights reserved.
           </p>
-          <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/50">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            All systems monitored
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <p className="font-mono text-[10px] text-muted-foreground/50 tracking-wider">
+              Powered by <span className="text-primary/70 font-bold">WOLF TECH</span> · Silent Wolf
+            </p>
+            <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/50">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              All systems monitored
+            </div>
           </div>
         </div>
       </div>

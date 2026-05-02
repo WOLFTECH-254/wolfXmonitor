@@ -1,8 +1,40 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Zap, Shield, Clock, Activity, ArrowRight, Globe, Bell, BarChart2 } from "lucide-react";
 import { Footer } from "@/components/footer";
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+interface CountryStat { country: string; count: number; }
+
+const COUNTRY_NAMES: Record<string, string> = {
+  NG: "Nigeria", GH: "Ghana", KE: "Kenya", ZA: "South Africa",
+  US: "United States", GB: "United Kingdom", CA: "Canada", AU: "Australia",
+  DE: "Germany", FR: "France", IN: "India", BR: "Brazil",
+  MX: "Mexico", JP: "Japan", SG: "Singapore", AE: "UAE",
+  RW: "Rwanda", TZ: "Tanzania", UG: "Uganda", ET: "Ethiopia",
+  EG: "Egypt", MA: "Morocco", SN: "Senegal",
+};
+
+function countryFlag(code: string): string {
+  if (!code || code.length !== 2) return "🌍";
+  return String.fromCodePoint(
+    ...code.toUpperCase().split("").map((c) => 0x1F1E6 + c.charCodeAt(0) - 65)
+  );
+}
+
 export default function Landing() {
+  const { data: countryStats = [] } = useQuery<CountryStat[]>({
+    queryKey: ["country-stats"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/stats/countries`);
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const totalUsers = countryStats.reduce((sum, r) => sum + r.count, 0);
+
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-x-hidden">
 
@@ -92,6 +124,48 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* GLOBAL USERS — country flags */}
+      {countryStats.length > 0 && (
+        <section className="px-6 py-20 border-t border-border">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-3">Global Reach</p>
+              <h2 className="font-display text-[clamp(32px,5vw,64px)] text-foreground leading-none">
+                WATCHED FROM <span className="text-primary">{countryStats.length} COUNTRIES</span>
+              </h2>
+              {totalUsers > 0 && (
+                <p className="font-mono text-sm text-muted-foreground mt-3">
+                  {totalUsers.toLocaleString()} wolf{totalUsers !== 1 ? "ves" : ""} watching endpoints worldwide
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-3">
+              {countryStats.map(({ country, count: cnt }) => (
+                <div
+                  key={country}
+                  title={`${COUNTRY_NAMES[country.toUpperCase()] ?? country} — ${cnt} user${cnt !== 1 ? "s" : ""}`}
+                  className="group flex flex-col items-center gap-1.5 border border-border hover:border-primary/40 bg-card hover:bg-primary/5 rounded-lg px-4 py-3 transition-all cursor-default min-w-[72px]"
+                >
+                  <span className="text-2xl leading-none">{countryFlag(country)}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground group-hover:text-foreground transition-colors uppercase tracking-widest">
+                    {country.toUpperCase()}
+                  </span>
+                  <span className="font-display text-lg text-primary leading-none">{cnt}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* scrolling flag strip if many countries */}
+            {countryStats.length >= 6 && (
+              <p className="text-center font-mono text-[10px] text-muted-foreground/40 mt-8 uppercase tracking-widest">
+                Hover any flag for the country name
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* HOW IT WORKS */}
       <section className="px-6 py-24 max-w-5xl mx-auto">
@@ -198,6 +272,9 @@ export default function Landing() {
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </Link>
+          <p className="font-mono text-[11px] text-muted-foreground/40 mt-8 tracking-wider">
+            Powered by <span className="text-primary/50">WOLF TECH</span> · Silent Wolf
+          </p>
         </div>
       </section>
 

@@ -7,6 +7,17 @@ import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
 
 const router = Router();
 
+// ── Public: user counts by country (no auth needed) ─────────────────────────
+router.get("/stats/countries", async (_req, res) => {
+  const rows = await db
+    .select({ country: usersTable.country, count: count() })
+    .from(usersTable)
+    .where(sql`${usersTable.country} IS NOT NULL AND ${usersTable.country} != ''`)
+    .groupBy(usersTable.country)
+    .orderBy(desc(count()));
+  res.json(rows);
+});
+
 router.get("/admin/stats", requireAdmin, async (_req, res) => {
   const [userCount] = await db.select({ count: count() }).from(usersTable);
   const [monitorCount] = await db.select({ count: count() }).from(monitorsTable);
