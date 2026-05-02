@@ -15,7 +15,7 @@ import {
 import { pingUrl } from "../lib/pinger";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
 import { requireAuth } from "../middlewares/auth";
-import { sendDownAlert } from "../lib/mailer";
+import { sendDownAlert, sendWelcomeAlert } from "../lib/mailer";
 
 const router = Router();
 
@@ -45,6 +45,19 @@ router.post("/monitors", async (req, res) => {
   if (monitor.active) {
     scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes);
   }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
+  if (user?.notificationsEnabled) {
+    const emailTo = user.notificationEmail ?? user.email;
+    sendWelcomeAlert({
+      toEmail: emailTo,
+      toName: user.name,
+      monitorName: monitor.name,
+      monitorUrl: monitor.url,
+      intervalMinutes: monitor.intervalMinutes,
+    }).catch(() => {});
+  }
+
   res.status(201).json(monitor);
 });
 

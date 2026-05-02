@@ -2,7 +2,7 @@ import { db, monitorsTable, pingsTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { pingUrl } from "./pinger";
 import { logger } from "./logger";
-import { sendDownAlert } from "./mailer";
+import { sendDownAlert, sendRecoveryAlert } from "./mailer";
 
 const activeTimers = new Map<number, NodeJS.Timeout>();
 
@@ -29,6 +29,7 @@ async function runPing(monitorId: number, url: string): Promise<void> {
     };
 
     const justWentDown = result.status === "down" && previousStatus !== "down";
+    const justRecovered = result.status === "up" && previousStatus === "down";
     if (justWentDown) {
       updateData.lastNotifiedDownAt = new Date();
     }
@@ -37,17 +38,27 @@ async function runPing(monitorId: number, url: string): Promise<void> {
 
     logger.info({ monitorId, url, status: result.status, responseTimeMs: result.responseTimeMs }, "Ping completed");
 
-    if (justWentDown && monitor.userId) {
+    if (monitor.userId) {
       const [user] = await db.select().from(usersTable).where(eq(usersTable.id, monitor.userId));
       if (user?.notificationsEnabled) {
         const emailTo = user.notificationEmail ?? user.email;
-        await sendDownAlert({
-          toEmail: emailTo,
-          toName: user.name,
-          monitorName: monitor.name,
-          monitorUrl: url,
-          error: result.error,
-        });
+        if (justWentDown) {
+          await sendDownAlert({
+            toEmail: emailTo,
+            toName: user.name,
+            monitorName: monitor.name,
+            monitorUrl: url,
+            error: result.error,
+          });
+        } else if (justRecovered) {
+          await sendRecoveryAlert({
+            toEmail: emailTo,
+            toName: user.name,
+            monitorName: monitor.name,
+            monitorUrl: url,
+            responseTimeMs: result.responseTimeMs,
+          });
+        }
       }
     }
   } catch (err) {
