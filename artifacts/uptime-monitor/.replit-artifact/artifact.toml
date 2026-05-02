@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Uptime Monitor"
+version = "1.0.0"
+id = "artifacts/uptime-monitor"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24041
+
+[services.development]
+run = "pnpm --filter @workspace/uptime-monitor run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/uptime-monitor", "run", "build" ]
+publicDir = "artifacts/uptime-monitor/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24041"
+BASE_PATH = "/"

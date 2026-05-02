@@ -3,20 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Uptime Monitor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: monitors
+    description: Monitor management
+  - name: pings
+    description: Ping history and stats
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +27,174 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /monitors:
+    get:
+      operationId: listMonitors
+      tags: [monitors]
+      summary: List all monitors
+      responses:
+        "200":
+          description: List of monitors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Monitor"
+    post:
+      operationId: createMonitor
+      tags: [monitors]
+      summary: Create a new monitor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMonitorBody"
+      responses:
+        "201":
+          description: Created monitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Monitor"
+
+  /monitors/{id}:
+    get:
+      operationId: getMonitor
+      tags: [monitors]
+      summary: Get a monitor by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Monitor"
+        "404":
+          description: Not found
+    put:
+      operationId: updateMonitor
+      tags: [monitors]
+      summary: Update a monitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMonitorBody"
+      responses:
+        "200":
+          description: Updated monitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Monitor"
+    delete:
+      operationId: deleteMonitor
+      tags: [monitors]
+      summary: Delete a monitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /monitors/{id}/pings:
+    get:
+      operationId: getMonitorPings
+      tags: [pings]
+      summary: Get ping history for a monitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Ping history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ping"
+
+  /monitors/{id}/stats:
+    get:
+      operationId: getMonitorStats
+      tags: [pings]
+      summary: Get uptime stats for a monitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorStats"
+
+  /monitors/{id}/ping:
+    post:
+      operationId: triggerPing
+      tags: [pings]
+      summary: Manually trigger a ping
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ping result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ping"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [monitors]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +205,144 @@ components:
       required:
         - status
 
+    Monitor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+        intervalMinutes:
+          type: integer
+          description: Ping interval in minutes
+        active:
+          type: boolean
+        lastPingedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastStatus:
+          type: string
+          enum: [up, down, unknown]
+        lastResponseTimeMs:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - url
+        - intervalMinutes
+        - active
+        - lastStatus
+        - createdAt
+
+    CreateMonitorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        intervalMinutes:
+          type: integer
+          default: 5
+        active:
+          type: boolean
+          default: true
+      required:
+        - name
+        - url
+
+    UpdateMonitorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        intervalMinutes:
+          type: integer
+        active:
+          type: boolean
+
+    Ping:
+      type: object
+      properties:
+        id:
+          type: integer
+        monitorId:
+          type: integer
+        status:
+          type: string
+          enum: [up, down]
+        responseTimeMs:
+          type: integer
+          nullable: true
+        statusCode:
+          type: integer
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - monitorId
+        - status
+        - createdAt
+
+    MonitorStats:
+      type: object
+      properties:
+        monitorId:
+          type: integer
+        uptimePercent:
+          type: number
+        avgResponseTimeMs:
+          type: number
+          nullable: true
+        totalPings:
+          type: integer
+        upPings:
+          type: integer
+        downPings:
+          type: integer
+        last24hUptimePercent:
+          type: number
+      required:
+        - monitorId
+        - uptimePercent
+        - totalPings
+        - upPings
+        - downPings
+        - last24hUptimePercent
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalMonitors:
+          type: integer
+        activeMonitors:
+          type: integer
+        monitorsUp:
+          type: integer
+        monitorsDown:
+          type: integer
+        monitorsUnknown:
+          type: integer
+        overallUptimePercent:
+          type: number
+      required:
+        - totalMonitors
+        - activeMonitors
+        - monitorsUp
+        - monitorsDown
+        - monitorsUnknown
+        - overallUptimePercent
