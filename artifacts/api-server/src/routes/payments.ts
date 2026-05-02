@@ -66,6 +66,7 @@ router.get("/payments/config", requireAuth, async (req, res) => {
     freeLimit: settings.freeLimit,
     userEmail: user.email,
     userName: user.name,
+    userCountry: (user.country ?? "").toUpperCase().slice(0, 2),
     plan: user.plan,
     planSlug: user.planSlug ?? null,
     planExpiresAt: user.planExpiresAt ?? null,

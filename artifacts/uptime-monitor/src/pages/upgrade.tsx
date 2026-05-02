@@ -16,6 +16,7 @@ interface PayConfig {
   freeLimit: number;
   userEmail: string;
   userName: string;
+  userCountry: string;
   plan: string;
   planSlug: string | null;
   planExpiresAt: string | null;
@@ -41,6 +42,7 @@ declare global {
         amount: number;
         currency: string;
         ref: string;
+        channels?: string[];
         onClose: () => void;
         callback: (response: { reference: string }) => void;
       }): { openIframe(): void };
@@ -91,6 +93,7 @@ export default function Upgrade() {
   const [selectedSlug, setSelectedSlug] = useState<string>("monthly");
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
+  const [showMethodPicker, setShowMethodPicker] = useState(false);
 
   const { data: config, isLoading: configLoading } = useQuery<PayConfig>({
     queryKey: ["pay-config"],
@@ -126,6 +129,7 @@ export default function Upgrade() {
   const rate = config?.exchangeRate ?? 1;
   const alreadyPro = config?.plan === "pro";
   const isLoading = configLoading || plansLoading;
+  const isKenyanUser = config?.userCountry === "KE";
 
   const selectedPlan = plans.find((p) => p.slug === selectedSlug) ?? plans[0];
 
@@ -134,16 +138,13 @@ export default function Upgrade() {
     return config?.currency === "USD" ? usd : Math.round(usd * rate);
   }
 
-  function handleUpgrade() {
-    if (!config || !scriptLoaded || !window.PaystackPop || !selectedPlan) {
-      setError("Payment system not ready. Please refresh and try again.");
-      return;
-    }
-    setError("");
+  function openPaystack(channel: "card" | "mobile_money") {
+    if (!config || !scriptLoaded || !window.PaystackPop || !selectedPlan) return;
+    setShowMethodPicker(false);
     setPaying(true);
+    setError("");
 
     const localAmt = localPrice(selectedPlan.priceUsd);
-    // Plan slug is embedded in ref so server can extract it without metadata
     const ref = `wxm_${selectedPlan.slug}_${Date.now()}_${user!.id}`;
 
     const onPaymentDone = (reference: string) => {
@@ -171,14 +172,87 @@ export default function Upgrade() {
       amount: localAmt * 100,
       currency: config.currency,
       ref,
+      channels: [channel],
       onClose: function() { setPaying(false); },
       callback: function(response) { onPaymentDone(response.reference); },
     });
     handler.openIframe();
   }
 
+  function handleUpgrade() {
+    if (!config || !scriptLoaded || !window.PaystackPop || !selectedPlan) {
+      setError("Payment system not ready. Please refresh and try again.");
+      return;
+    }
+    setError("");
+    if (isKenyanUser) {
+      // Show M-Pesa vs Card picker for Kenyan users
+      setShowMethodPicker(true);
+    } else {
+      // Non-Kenyan users go straight to card modal
+      openPaystack("card");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground dark">
+
+      {/* ── Payment Method Picker (Kenya only) ─────────────────────────────── */}
+      {showMethodPicker && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowMethodPicker(false)}>
+          <div className="bg-card border border-border rounded-lg p-8 w-full max-w-sm mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-6">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">Choose Payment Method</p>
+              <p className="font-display text-2xl uppercase tracking-wide text-foreground">How to Pay</p>
+              {selectedPlan && (
+                <p className="font-mono text-xs text-muted-foreground mt-1">
+                  {symbol}{localPrice(selectedPlan.priceUsd).toLocaleString()} {config?.currency} · {selectedPlan.name}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {/* M-Pesa STK Push */}
+              <button
+                onClick={() => openPaystack("mobile_money")}
+                className="w-full flex items-center gap-4 p-4 border border-[#00A651]/40 bg-[#00A651]/5 hover:bg-[#00A651]/10 hover:border-[#00A651]/70 rounded-lg transition-all group"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#00A651]/15 border border-[#00A651]/30 flex items-center justify-center shrink-0">
+                  <span className="font-display text-base text-[#00A651]">M</span>
+                </div>
+                <div className="text-left">
+                  <p className="font-mono text-sm font-bold text-foreground">M-Pesa STK Push</p>
+                  <p className="font-mono text-[11px] text-muted-foreground">Receive prompt on your phone</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#00A651] ml-auto group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* Card */}
+              <button
+                onClick={() => openPaystack("card")}
+                className="w-full flex items-center gap-4 p-4 border border-border hover:border-primary/50 bg-background hover:bg-primary/5 rounded-lg transition-all group"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0">
+                  <span className="font-mono text-sm text-primary">💳</span>
+                </div>
+                <div className="text-left">
+                  <p className="font-mono text-sm font-bold text-foreground">Debit / Credit Card</p>
+                  <p className="font-mono text-[11px] text-muted-foreground">Visa, Mastercard accepted</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-primary ml-auto group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+
+            <button onClick={() => setShowMethodPicker(false)}
+              className="w-full mt-5 font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
