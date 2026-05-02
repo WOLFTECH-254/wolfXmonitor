@@ -42,7 +42,6 @@ declare global {
         currency: string;
         ref: string;
         metadata?: Record<string, unknown>;
-        channels?: string[];
         onClose: () => void;
         callback: (response: { reference: string }) => void;
       }): { openIframe(): void };
@@ -147,17 +146,12 @@ export default function Upgrade() {
     const localAmt = localPrice(selectedPlan.priceUsd);
     const ref = `wxm_${selectedPlan.slug}_${Date.now()}_${user!.id}`;
 
-    const channels = config.currency === "KES"
-      ? ["card", "mobile_money"]
-      : ["card"];
-
     const handler = window.PaystackPop.setup({
       key: config.publicKey,
       email: config.userEmail,
       amount: localAmt * 100,
       currency: config.currency,
       ref,
-      channels,
       metadata: {
         userId: user!.id,
         planSlug: selectedPlan.slug,
