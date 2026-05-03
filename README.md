@@ -11,6 +11,7 @@ Know the instant your sites go down — before your users do.
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Telegram](https://img.shields.io/badge/Telegram-Alerts-2AABEE?logo=telegram&logoColor=white)](https://t.me/wolfXmonitor_bot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
 [![Made in Kenya](https://img.shields.io/badge/Made%20in-Kenya%20🇰🇪-006600)](https://xcasper.space)
 
@@ -35,7 +36,7 @@ Know the instant your sites go down — before your users do.
 
 ## What is wolfXmonitor?
 
-wolfXmonitor is a full-stack **SaaS uptime monitoring platform** that pings your websites and APIs every minute and alerts you by email the moment they go down. Built with a dark green aesthetic, it includes multi-user support, Free and Pro subscription tiers via Paystack, Brevo email alerts, a public status page, and a full admin control panel.
+wolfXmonitor is a full-stack **SaaS uptime monitoring platform** that pings your websites and APIs every minute and alerts you instantly — by **email, Telegram, and WhatsApp** — the moment they go down. Built with a dark green aesthetic, it includes multi-user support, Free and Pro subscription tiers via Paystack, Brevo email alerts, a public status page, and a full admin control panel.
 
 Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 
@@ -50,10 +51,19 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 - **Incident log** — full history of every outage with duration and timestamps
 - **Public status page** — shareable `/status` URL showing live green/red health
 
-### Alerts
+### Alerts & Integrations
 - **Email alerts via Brevo** — instant notification when a site goes down or recovers
-- **Configurable sender** — admin sets the FROM name, email, and Brevo API key
+- **Telegram alerts** — real-time incident messages via [@wolfXmonitor_bot](https://t.me/wolfXmonitor_bot)
+- **WhatsApp alerts** — incident notifications via Twilio WhatsApp API
+- **Multi-channel delivery** — email + Telegram + WhatsApp fire simultaneously on every incident
 - **Alert deduplication** — one alert per incident, not one per ping
+- **Test message button** — users can verify their Telegram or WhatsApp connection instantly
+
+### Integrations & API
+- Users connect Telegram by pasting their Chat ID in the **Integrations & API** page
+- Users connect WhatsApp by entering their phone number (international format)
+- Admin configures the Telegram bot token and Twilio credentials once in the Admin Panel
+- All channel settings are per-user — each user controls their own alert destinations
 
 ### Multi-user & Billing
 - **Free plan** — up to N monitors (admin-configurable)
@@ -67,6 +77,7 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 - Monitor oversight — see every monitor across all users
 - Billing settings — Paystack keys, currency, free plan limits
 - Email settings — Brevo API key, sender name, and address
+- Chat notifications — Telegram bot token + Twilio WhatsApp credentials
 - Footer & social links — edit footer content without code
 - Country stats — see which countries your users are from
 
@@ -89,6 +100,8 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 | Auth | Session-based (express-session + connect-pg-simple) |
 | Payments | Paystack Inline JS (v1) |
 | Email | Brevo (Sendinblue) Transactional API |
+| Telegram | Telegram Bot API (`sendMessage`) |
+| WhatsApp | Twilio WhatsApp API |
 | Monorepo | pnpm workspaces |
 | Deployment | Nginx reverse proxy + PM2 process manager |
 
@@ -100,10 +113,12 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 wolfxmonitor/
 ├── artifacts/
 │   ├── api-server/          # Express REST API
-│   │   └── src/routes/      # auth, monitors, payments, admin, alerts
+│   │   └── src/
+│   │       ├── routes/      # auth, monitors, payments, admin, alerts
+│   │       └── lib/         # mailer, notifier (Telegram/WhatsApp), scheduler
 │   └── uptime-monitor/      # React + Vite frontend
 │       └── src/
-│           ├── pages/       # landing, dashboard, monitoring, upgrade, admin…
+│           ├── pages/       # landing, dashboard, monitoring, upgrade, admin, settings
 │           ├── components/  # layout, footer, ui primitives
 │           └── hooks/       # use-auth, api client hooks
 ├── lib/
@@ -155,8 +170,12 @@ pnpm --filter @workspace/uptime-monitor run dev
 | `DATABASE_URL` | PostgreSQL connection string | ✅ |
 | `SESSION_SECRET` | Secret for signing sessions | ✅ |
 | `BREVO_API_KEY` | Brevo transactional email API key | For email alerts |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather | For Telegram alerts |
+| `TWILIO_ACCOUNT_SID` | Twilio Account SID | For WhatsApp alerts |
+| `TWILIO_AUTH_TOKEN` | Twilio Auth Token | For WhatsApp alerts |
+| `TWILIO_WHATSAPP_FROM` | Twilio WhatsApp-enabled number | For WhatsApp alerts |
 
-> Paystack keys and Brevo settings are stored in the database via the Admin Panel — not in environment files.
+> Paystack keys, Brevo settings, Telegram token, and Twilio credentials are stored in the database via the Admin Panel — environment variables are optional fallbacks.
 
 ---
 
@@ -166,7 +185,15 @@ pnpm --filter @workspace/uptime-monitor run dev
 2. Navigate to `/admin`
 3. Under **Payments**, enter your Paystack public and secret keys and set the billing currency.
 4. Under **Email**, enter your Brevo API key, sender name, and verified sender email.
-5. Under **Settings**, configure the free plan monitor limit.
+5. Under **Settings → Chat Notifications**, enter your Telegram bot token and/or Twilio credentials.
+6. Users then go to **Integrations & API** in the sidebar to connect their own Telegram Chat ID or WhatsApp number.
+
+### Setting up Telegram
+
+1. Message [@BotFather](https://t.me/botfather) on Telegram → `/newbot` → copy the token
+2. Paste it in **Admin → Settings → Chat Notifications → Telegram Bot Token**
+3. Users message [@userinfobot](https://t.me/userinfobot) to get their Chat ID
+4. Users start your bot (`/start`), then paste their Chat ID in **Integrations & API**
 
 ---
 
@@ -182,6 +209,9 @@ pnpm --filter @workspace/uptime-monitor run dev
 | `DELETE` | `/api/monitors/:id` | Delete a monitor |
 | `POST` | `/api/monitors/:id/ping` | Manually trigger a ping |
 | `GET` | `/api/dashboard/summary` | Uptime stats summary |
+| `GET` | `/api/me/channels` | Get user's notification channel settings |
+| `PUT` | `/api/me/channels` | Save Telegram Chat ID / WhatsApp number |
+| `POST` | `/api/me/channels/test` | Send a test message to Telegram or WhatsApp |
 | `GET` | `/api/status` | Public status page data |
 | `GET` | `/api/payments/config` | Paystack config + user country |
 | `POST` | `/api/payments/verify` | Verify Paystack payment & activate Pro |
@@ -240,7 +270,9 @@ server {
 
 ## Roadmap
 
-- [ ] Slack / Discord webhook alerts
+- [x] Telegram alerts — real-time bot messages on site down/recovery
+- [x] WhatsApp alerts — via Twilio WhatsApp API
+- [ ] Discord / Slack webhook alerts
 - [ ] Custom ping intervals (5 min, 15 min, 30 min)
 - [ ] Multi-region pings (US, EU, Africa)
 - [ ] SSL certificate expiry monitoring
