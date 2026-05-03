@@ -16,7 +16,7 @@ import {
 import { useParams, useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw, Pause, Play, Trash2, ExternalLink, Globe } from "lucide-react";
+import { ArrowLeft, RefreshCw, Pause, Play, Trash2, ExternalLink, Globe, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow, formatDuration, intervalToDuration } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { useState } from "react";
 
 function UptimeBar({ pings }: { pings: Array<{ status: string }> }) {
   if (!pings.length) return <div className="text-muted-foreground font-mono text-xs">No data</div>;
@@ -81,6 +85,32 @@ export default function MonitorDetail() {
   const deleteMonitor = useDeleteMonitor();
   const triggerPing = useTriggerPing();
   const updateMonitor = useUpdateMonitor();
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [editInterval, setEditInterval] = useState(5);
+
+  const openEdit = () => {
+    if (!monitor) return;
+    setEditName(monitor.name);
+    setEditUrl(monitor.url);
+    setEditInterval(monitor.intervalMinutes);
+    setEditOpen(true);
+  };
+
+  const handleEdit = () => {
+    if (!monitor) return;
+    updateMonitor.mutate({ id, data: { name: editName, url: editUrl, intervalMinutes: editInterval } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetMonitorQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: getListMonitorsQueryKey() });
+        setEditOpen(false);
+        toast({ title: "Monitor updated" });
+      },
+      onError: () => toast({ variant: "destructive", title: "Error", description: "Failed to update monitor." })
+    });
+  };
 
   const handleDelete = () => {
     deleteMonitor.mutate({ id }, {
@@ -199,6 +229,15 @@ export default function MonitorDetail() {
                 <RefreshCw className={`w-3.5 h-3.5 ${triggerPing.isPending ? "animate-spin" : ""}`} />
                 Test
               </button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-mono text-xs border-border bg-card hover:border-primary/50 h-8"
+                onClick={openEdit}
+              >
+                <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                Edit
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -413,6 +452,62 @@ export default function MonitorDetail() {
         </div>
 
       </div>
+
+      {/* Edit Monitor Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="bg-card border-border sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl uppercase tracking-wide">Edit Monitor</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Name</label>
+              <input
+                className="w-full bg-background border border-border rounded px-3 py-2 font-mono text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                placeholder="My Website"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">URL</label>
+              <input
+                className="w-full bg-background border border-border rounded px-3 py-2 font-mono text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
+                value={editUrl}
+                onChange={e => setEditUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Ping Interval</label>
+              <select
+                className="w-full bg-background border border-border rounded px-3 py-2 font-mono text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
+                value={editInterval}
+                onChange={e => setEditInterval(Number(e.target.value))}
+              >
+                {[1, 2, 3, 5, 10, 15, 30, 60].map(v => (
+                  <option key={v} value={v}>Every {v} minute{v !== 1 ? "s" : ""}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <button
+              className="font-mono text-xs border border-border px-4 py-2 rounded hover:border-muted-foreground transition-colors"
+              onClick={() => setEditOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="font-mono text-xs bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
+              onClick={handleEdit}
+              disabled={updateMonitor.isPending || !editName.trim() || !editUrl.trim()}
+            >
+              {updateMonitor.isPending ? "Saving…" : "Save Changes"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
