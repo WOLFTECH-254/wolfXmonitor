@@ -111,7 +111,7 @@ export default function Settings() {
         <title>Integrations & API — wolfXmonitor</title>
       </Helmet>
 
-      <div className="max-w-2xl space-y-8">
+      <div className="max-w-5xl space-y-8">
         <div>
           <h1 className="font-display text-2xl tracking-wide text-foreground">
             Integrations <span className="text-primary">&amp; API</span>
@@ -127,6 +127,7 @@ export default function Settings() {
           </div>
         ) : (
           <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Telegram */}
             <div className="bg-card border border-border rounded-lg p-6 space-y-4">
               <div className="flex items-center gap-3">
@@ -290,6 +291,7 @@ export default function Settings() {
                 </Button>
               )}
             </div>
+            </div>{/* end grid */}
 
             {/* Account email note */}
             <div className="bg-muted/20 border border-border rounded p-4 font-mono text-[11px] text-muted-foreground">
