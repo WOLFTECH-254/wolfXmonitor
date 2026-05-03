@@ -233,7 +233,8 @@ server {
     <td align="center"><img src="attached_assets/new-screenshot.jpg" alt="Dashboard" width="340"/><br/><sub><b>Dashboard</b></sub></td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><img src="attached_assets/dashboard-screenshot.jpg" alt="Monitor Detail" width="500"/><br/><sub><b>Monitor Detail</b></sub></td>
+    <td align="center"><img src="attached_assets/dashboard-screenshot.jpg" alt="Monitor Detail" width="340"/><br/><sub><b>Monitor Detail</b></sub></td>
+    <td align="center"><img src="attached_assets/screenshot-3.jpg" alt="Admin Panel" width="340"/><br/><sub><b>Admin Panel</b></sub></td>
   </tr>
 </table>
 
