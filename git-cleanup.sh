@@ -11,6 +11,9 @@ git rm --cached .replit 2>/dev/null || echo "  (already untracked)"
 echo "Removing replit.md from git tracking..."
 git rm --cached replit.md 2>/dev/null || echo "  (already untracked)"
 
+echo "Removing .agents/ from git tracking..."
+git rm --cached -r .agents/ 2>/dev/null || echo "  (already untracked)"
+
 echo "Removing attached_assets/ from git tracking..."
 git rm --cached -r attached_assets/ 2>/dev/null || echo "  (already untracked)"
 

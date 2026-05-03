@@ -55,6 +55,7 @@ replit.md
 .cache/
 .local/
 .upm/
+.agents/
 attached_assets/
 image_*.png
 image_*.jpg
