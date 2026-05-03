@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import createGlobe from "cobe";
 import { Zap, Shield, Clock, Activity, ArrowRight, Globe, Bell, BarChart2 } from "lucide-react";
 import { Footer } from "@/components/footer";
 
@@ -19,7 +20,6 @@ const COUNTRY_NAMES: Record<string, string> = {
   PH: "Philippines", ID: "Indonesia", TR: "Turkey", NL: "Netherlands",
 };
 
-// Baseline mock counts — always shown. Real API counts are merged on top.
 const MOCK_COUNTRIES: CountryStat[] = [
   { country: "KE", count: 38 }, { country: "NG", count: 27 },
   { country: "GH", count: 19 }, { country: "US", count: 15 },
@@ -34,6 +34,78 @@ const MOCK_COUNTRIES: CountryStat[] = [
   { country: "JP", count: 1 },  { country: "NL", count: 1 },
   { country: "PK", count: 1 },  { country: "EG", count: 1 },
 ];
+
+// Country lat/lng markers shown on the globe
+const GLOBE_MARKERS = [
+  { location: [-1.3,  36.8 ] as [number,number], size: 0.07 },  // Kenya
+  { location: [ 9.0,   8.7 ] as [number,number], size: 0.06 },  // Nigeria
+  { location: [ 7.9,  -1.0 ] as [number,number], size: 0.05 },  // Ghana
+  { location: [37.0, -95.7 ] as [number,number], size: 0.06 },  // USA
+  { location: [51.5,  -0.1 ] as [number,number], size: 0.05 },  // UK
+  { location: [20.6,  78.9 ] as [number,number], size: 0.05 },  // India
+  { location: [-29.0, 25.0 ] as [number,number], size: 0.05 },  // South Africa
+  { location: [ 1.4, 103.8 ] as [number,number], size: 0.04 },  // Singapore
+  { location: [-25.3, 133.8] as [number,number], size: 0.04 },  // Australia
+  { location: [51.2,  10.5 ] as [number,number], size: 0.04 },  // Germany
+  { location: [-6.4,  34.9 ] as [number,number], size: 0.04 },  // Tanzania
+  { location: [ 1.4,  32.3 ] as [number,number], size: 0.03 },  // Uganda
+  { location: [-1.9,  29.9 ] as [number,number], size: 0.03 },  // Rwanda
+  { location: [35.7, 139.7 ] as [number,number], size: 0.04 },  // Japan
+  { location: [45.4, -75.7 ] as [number,number], size: 0.04 },  // Canada
+];
+
+function SpinningGlobe() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const phiRef = useRef(0.6);
+  const widthRef = useRef(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onResize = () => {
+      widthRef.current = canvas.offsetWidth;
+    };
+    window.addEventListener("resize", onResize);
+    onResize();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const globe = (createGlobe as any)(canvas, {
+      devicePixelRatio: Math.min(window.devicePixelRatio, 2),
+      width: widthRef.current * 2,
+      height: widthRef.current * 2,
+      phi: phiRef.current,
+      theta: 0.25,
+      dark: 1,
+      diffuse: 1.4,
+      mapSamples: 20000,
+      mapBrightness: 5,
+      baseColor:   [0.05, 0.12, 0.06],
+      markerColor: [0.15, 0.95, 0.35],
+      glowColor:   [0.08, 0.40, 0.12],
+      markers: GLOBE_MARKERS,
+      onRender: (state: Record<string, unknown>) => {
+        state.phi = phiRef.current;
+        phiRef.current += 0.0025;
+        state.width  = widthRef.current * 2;
+        state.height = widthRef.current * 2;
+      },
+    });
+
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (globe as any).destroy();
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: "100%", height: "100%", aspectRatio: "1/1" }}
+    />
+  );
+}
 
 function FlagImg({ code, size = 32 }: { code: string; size?: number }) {
   const lower = code.toLowerCase();
@@ -51,14 +123,12 @@ function FlagImg({ code, size = 32 }: { code: string; size?: number }) {
   );
 }
 
-// Animated counter — triggers once when element enters viewport
 function useCountUp(target: number, duration = 2000) {
   const [value, setValue] = useState(0);
   const [triggered, setTriggered] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
   const raf = useRef<number | null>(null);
 
-  // Intersection Observer — fire once when section is 30% visible
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -70,7 +140,6 @@ function useCountUp(target: number, duration = 2000) {
     return () => obs.disconnect();
   }, []);
 
-  // Start counting once triggered
   useEffect(() => {
     if (!triggered || target === 0) return;
     let startTs: number | null = null;
@@ -110,7 +179,6 @@ export default function Landing() {
     staleTime: 60 * 1000,
   });
 
-  // Merge real counts on top of mock baseline
   const countryStats: CountryStat[] = (() => {
     const merged = new Map<string, number>(MOCK_COUNTRIES.map(c => [c.country, c.count]));
     for (const r of realStats) {
@@ -124,10 +192,8 @@ export default function Landing() {
 
   const totalUsers = countryStats.reduce((sum, r) => sum + r.count, 0);
   const { value: animatedTotal, sectionRef } = useCountUp(totalUsers);
-  // show only first 8 flags overlapping
   const visibleFlags = countryStats.slice(0, 8);
   const extraCount = countryStats.length - visibleFlags.length;
-  // display labels — rounded down to nearest 100, shown as "100+"
   const displayUsers = Math.floor(totalUsers / 100) * 100;
   const displayCountries = Math.floor(countryStats.length / 10) * 10;
 
@@ -174,8 +240,26 @@ export default function Landing() {
       </nav>
 
       {/* HERO */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-16 grid-bg">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none" />
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-16 overflow-hidden">
+
+        {/* Globe background — centered, large, behind everything */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <div
+            className="w-[min(90vw,700px)] h-[min(90vw,700px)] opacity-60"
+            style={{ filter: "blur(0.5px)" }}
+          >
+            <SpinningGlobe />
+          </div>
+        </div>
+
+        {/* Dark radial gradient to punch text out of the globe */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{
+            background: "radial-gradient(ellipse 55% 50% at 50% 50%, transparent 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.92) 100%)"
+          }}
+        />
+        {/* Fade to solid at the very bottom */}
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent pointer-events-none" />
 
         <div className="relative z-10 text-center max-w-5xl mx-auto">
           <div className="inline-flex items-center gap-2 border border-primary/30 bg-primary/5 rounded-full px-4 py-1.5 mb-8">
@@ -215,9 +299,9 @@ export default function Landing() {
           <div className="grid grid-cols-2 md:grid-cols-4 border border-border bg-card/80 backdrop-blur-sm rounded">
             {[
               { value: "99.9%", label: "Uptime SLA" },
-              { value: "24/7", label: "Always Watching" },
-              { value: "<30s", label: "Detection Speed" },
-              { value: "Free", label: "Open & Forever" },
+              { value: "24/7",  label: "Always Watching" },
+              { value: "<30s",  label: "Detection Speed" },
+              { value: "Free",  label: "Open & Forever" },
             ].map((stat, i) => (
               <div
                 key={i}
@@ -231,11 +315,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* GLOBAL REACH — overlapping flags + live counter */}
+      {/* GLOBAL REACH */}
       <section ref={sectionRef} className="px-6 py-14 border-t border-border">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
 
-          {/* Overlapping flag stack */}
           <div className="flex items-center">
             <div className="flex -space-x-3">
               {visibleFlags.map(({ country }, i) => (
@@ -259,10 +342,8 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Divider */}
           <div className="hidden sm:block w-px h-12 bg-border" />
 
-          {/* Live counter */}
           <div className="text-center sm:text-left">
             <div className="flex items-baseline gap-1">
               <span className="font-display text-5xl md:text-6xl text-primary leading-none tabular-nums">
@@ -275,7 +356,6 @@ export default function Landing() {
               <span className="text-foreground font-bold">{displayCountries}+ countries</span>
             </p>
           </div>
-
         </div>
       </section>
 
@@ -368,7 +448,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA FOOTER */}
+      {/* CTA */}
       <section className="px-6 py-28 text-center border-t border-border relative overflow-hidden">
         <div className="absolute inset-0 grid-bg opacity-40" />
         <div className="relative z-10 max-w-3xl mx-auto">
