@@ -221,6 +221,64 @@ export async function sendDeleteAlert(opts: {
   }
 }
 
+export async function sendPaymentConfirmEmail(opts: {
+  toEmail: string;
+  toName: string;
+  amount: number;
+  currency: string;
+  planSlug: string;
+  planExpiresAt: Date;
+}): Promise<void> {
+  const { toEmail, toName, amount, currency, planSlug, planExpiresAt } = opts;
+  const config = await getEmailConfig();
+  if (!config) {
+    logger.warn("Brevo API key not configured — skipping payment confirm email");
+    return;
+  }
+
+  const amountFormatted = (amount / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 });
+  const planLabel = planSlug.charAt(0).toUpperCase() + planSlug.slice(1);
+  const expiresFormatted = planExpiresAt.toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" });
+
+  const html = `${BRAND}${BRAND_HEADER}
+    <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Payment Confirmed</div>
+      <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">Pro Plan Active</div>
+      <div style="font-size:13px;color:#d1ffd6;margin-top:4px;">${planLabel} subscription</div>
+    </div>
+    <div style="background:#0d160f;border-radius:6px;padding:16px;margin-bottom:20px;font-size:12px;color:#6b7280;line-height:2;">
+      <div style="display:flex;justify-content:space-between;">
+        <span>Amount paid</span>
+        <span style="color:#d1ffd6;font-weight:700;">${currency} ${amountFormatted}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span>Plan</span>
+        <span style="color:#d1ffd6;">${planLabel} Pro</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span>Valid until</span>
+        <span style="color:#22c55e;">${expiresFormatted}</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;line-height:1.7;">
+      Thank you, ${toName}. Your Pro plan is now active — unlimited monitors, full history, and priority alerts. wolfXmonitor is watching 24/7.
+    </div>
+  ${BRAND_FOOTER}`;
+
+  try {
+    await sendEmail(config, {
+      sender: { name: config.senderName, email: config.senderEmail },
+      to: [{ email: toEmail, name: toName }],
+      subject: `Pro plan activated — wolfXmonitor`,
+      htmlContent: html,
+    });
+    logger.info({ toEmail, planSlug }, "Payment confirmation email sent");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err: msg, toEmail }, "Failed to send payment confirmation email");
+  }
+}
+
 export async function sendRecoveryAlert(opts: {
   toEmail: string;
   toName: string;

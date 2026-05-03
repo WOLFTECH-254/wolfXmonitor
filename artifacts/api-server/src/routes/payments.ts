@@ -3,6 +3,7 @@ import axios from "axios";
 import { db, paymentsTable, settingsTable, usersTable, plansTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
+import { sendPaymentConfirmEmail } from "../lib/mailer";
 
 const router = Router();
 
@@ -131,6 +132,19 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
         .set({ plan: "pro", planSlug, planExpiresAt })
         .where(eq(usersTable.id, req.session.userId!));
 
+      // Send payment confirmation email (fire-and-forget)
+      const [updatedUser] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
+      if (updatedUser) {
+        sendPaymentConfirmEmail({
+          toEmail: updatedUser.email,
+          toName: updatedUser.name,
+          amount: data.amount,
+          currency: data.currency,
+          planSlug,
+          planExpiresAt,
+        }).catch(() => {});
+      }
+
       res.json({ ok: true, plan: "pro", planSlug, planExpiresAt });
     } else {
       const existing = await db.select().from(paymentsTable).where(eq(paymentsTable.paystackReference, reference));
@@ -185,6 +199,19 @@ router.post("/payments/webhook", async (req, res) => {
       await db.update(usersTable)
         .set({ plan: "pro", planSlug, planExpiresAt })
         .where(eq(usersTable.id, metadata.userId));
+
+      // Send payment confirmation email (fire-and-forget)
+      const [webhookUser] = await db.select().from(usersTable).where(eq(usersTable.id, metadata.userId));
+      if (webhookUser) {
+        sendPaymentConfirmEmail({
+          toEmail: webhookUser.email,
+          toName: webhookUser.name,
+          amount: event.data?.amount ?? 0,
+          currency: event.data?.currency ?? "KES",
+          planSlug,
+          planExpiresAt,
+        }).catch(() => {});
+      }
     }
   }
 
