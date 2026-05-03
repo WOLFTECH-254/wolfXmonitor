@@ -55,15 +55,18 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 - **Email alerts via Brevo** — instant notification when a site goes down or recovers
 - **Telegram alerts** — real-time incident messages via [@wolfXmonitor_bot](https://t.me/wolfXmonitor_bot)
 - **WhatsApp alerts** — incident notifications via Twilio WhatsApp API
-- **Multi-channel delivery** — email + Telegram + WhatsApp fire simultaneously on every incident
+- **Discord alerts** — rich color-coded embeds via Discord webhook (no bot invite needed)
+- **Multi-channel delivery** — email + Telegram + WhatsApp + Discord fire simultaneously on every incident
 - **Alert deduplication** — one alert per incident, not one per ping
-- **Test message button** — users can verify their Telegram or WhatsApp connection instantly
+- **Test message button** — users can verify each channel connection instantly
 
 ### Integrations & API
 - Users connect Telegram by pasting their Chat ID in the **Integrations & API** page
 - Users connect WhatsApp by entering their phone number (international format)
+- Users connect Discord by pasting a webhook URL from any channel they own
 - Admin configures the Telegram bot token and Twilio credentials once in the Admin Panel
 - All channel settings are per-user — each user controls their own alert destinations
+- Full docs at [monitor.xwolf.space/docs](https://monitor.xwolf.space/docs)
 
 ### Multi-user & Billing
 - **Free plan** — up to N monitors (admin-configurable)
@@ -191,7 +194,7 @@ pnpm --filter @workspace/uptime-monitor run dev
 3. Under **Payments**, enter your Paystack public and secret keys and set the billing currency.
 4. Under **Email**, enter your Brevo API key, sender name, and verified sender email.
 5. Under **Settings → Chat Notifications**, enter your Telegram bot token and/or Twilio credentials.
-6. Users then go to **Integrations & API** in the sidebar to connect their own Telegram Chat ID or WhatsApp number.
+6. Users then go to **Integrations & API** in the sidebar to connect their own Telegram Chat ID, WhatsApp number, or Discord webhook URL.
 
 ### Setting up Telegram
 
@@ -199,6 +202,15 @@ pnpm --filter @workspace/uptime-monitor run dev
 2. Paste it in **Admin → Settings → Chat Notifications → Telegram Bot Token**
 3. Users message [@userinfobot](https://t.me/userinfobot) to get their Chat ID
 4. Users start your bot (`/start`), then paste their Chat ID in **Integrations & API**
+
+### Setting up Discord
+
+No bot token or admin config needed — Discord uses per-user webhooks:
+
+1. User opens Discord → goes to any channel they own → **Edit Channel → Integrations → Webhooks → New Webhook**
+2. Names it `wolfXmonitor`, clicks **Copy Webhook URL**
+3. Pastes the URL in **Integrations & API → Discord**, clicks Save
+4. Clicks **Send test message** — a green embed appears in the channel instantly
 
 ---
 
@@ -214,9 +226,9 @@ pnpm --filter @workspace/uptime-monitor run dev
 | `DELETE` | `/api/monitors/:id` | Delete a monitor |
 | `POST` | `/api/monitors/:id/ping` | Manually trigger a ping |
 | `GET` | `/api/dashboard/summary` | Uptime stats summary |
-| `GET` | `/api/me/channels` | Get user's notification channel settings |
-| `PUT` | `/api/me/channels` | Save Telegram Chat ID / WhatsApp number |
-| `POST` | `/api/me/channels/test` | Send a test message to Telegram or WhatsApp |
+| `GET` | `/api/me/channels` | Get user's Telegram, WhatsApp & Discord settings |
+| `PUT` | `/api/me/channels` | Save Telegram Chat ID, WhatsApp number, or Discord webhook URL |
+| `POST` | `/api/me/channels/test` | Send a test message to Telegram, WhatsApp, or Discord |
 | `GET` | `/api/status` | Public status page data |
 | `GET` | `/api/payments/config` | Paystack config + user country |
 | `POST` | `/api/payments/verify` | Verify Paystack payment & activate Pro |
@@ -277,7 +289,8 @@ server {
 
 - [x] Telegram alerts — real-time bot messages on site down/recovery
 - [x] WhatsApp alerts — via Twilio WhatsApp API
-- [ ] Discord / Slack webhook alerts
+- [x] Discord alerts — rich color-coded embeds via webhook (no bot needed)
+- [ ] Slack webhook alerts
 - [ ] Custom ping intervals (5 min, 15 min, 30 min)
 - [ ] Multi-region pings (US, EU, Africa)
 - [ ] SSL certificate expiry monitoring
