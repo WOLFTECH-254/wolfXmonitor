@@ -120,12 +120,12 @@ export async function sendWelcomeAlert(opts: {
 
   const html = `${BRAND}${BRAND_HEADER}
     <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
-      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">✓ Now Monitoring</div>
+      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Now Monitoring</div>
       <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">${monitorName}</div>
-      <a href="${monitorUrl}" style="font-size:12px;color:#22c55e;text-decoration:none;">${monitorUrl}</a>
+      <div style="font-size:12px;color:#22c55e;">${monitorUrl}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
-      Hey ${toName}, wolfXmonitor is now watching <strong style="color:#d1ffd6;">${monitorName}</strong>. You'll be notified immediately if it goes down.
+      Hey ${toName}, wolfXmonitor is now watching <strong style="color:#d1ffd6;">${monitorName}</strong>. You will be notified immediately if it goes down.
     </div>
   ${BRAND_FOOTER}`;
 
@@ -159,9 +159,9 @@ export async function sendDownAlert(opts: {
 
   const html = `${BRAND}${BRAND_HEADER}
     <div style="background:#1a0a0a;border:1px solid #ef444455;border-radius:6px;padding:20px;margin-bottom:20px;">
-      <div style="font-size:10px;color:#ef4444;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">⚠ Monitor Down</div>
+      <div style="font-size:10px;color:#ef4444;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Monitor Down</div>
       <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">${monitorName}</div>
-      <a href="${monitorUrl}" style="font-size:12px;color:#ef4444;text-decoration:none;">${monitorUrl}</a>
+      <div style="font-size:12px;color:#ef4444;">${monitorUrl}</div>
       ${error ? `<div style="margin-top:12px;font-size:11px;color:#ef4444;background:#2a0a0a;padding:10px;border-radius:4px;font-family:'Courier New',monospace;">${error}</div>` : ""}
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
@@ -237,9 +237,9 @@ export async function sendRecoveryAlert(opts: {
 
   const html = `${BRAND}${BRAND_HEADER}
     <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
-      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">✓ Monitor Recovered</div>
+      <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Monitor Recovered</div>
       <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">${monitorName}</div>
-      <a href="${monitorUrl}" style="font-size:12px;color:#22c55e;text-decoration:none;">${monitorUrl}</a>
+      <div style="font-size:12px;color:#22c55e;">${monitorUrl}</div>
       ${responseTimeMs ? `<div style="margin-top:12px;font-size:13px;color:#22c55e;font-weight:600;">Response time: ${responseTimeMs}ms</div>` : ""}
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
