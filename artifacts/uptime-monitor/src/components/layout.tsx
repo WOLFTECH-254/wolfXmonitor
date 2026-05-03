@@ -102,7 +102,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
           >
             <BellRing className="w-4 h-4" />
-            Notifications
+            Integrations & API
           </Button>
         </Link>
         <Link href="/status">

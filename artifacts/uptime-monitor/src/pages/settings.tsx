@@ -97,16 +97,16 @@ export default function Settings() {
   return (
     <Layout>
       <Helmet>
-        <title>Notification Channels — wolfXmonitor</title>
+        <title>Integrations & API — wolfXmonitor</title>
       </Helmet>
 
       <div className="max-w-2xl space-y-8">
         <div>
           <h1 className="font-display text-2xl tracking-wide text-foreground">
-            Notification <span className="text-primary">Channels</span>
+            Integrations <span className="text-primary">&amp; API</span>
           </h1>
           <p className="font-mono text-xs text-muted-foreground mt-1">
-            Get site incidents delivered to Telegram and WhatsApp — in addition to email.
+            Connect Telegram or WhatsApp to receive site incident alerts on your chat platforms.
           </p>
         </div>
 
