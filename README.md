@@ -15,7 +15,7 @@ Know the instant your sites go down — before your users do.
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
 [![Made in Kenya](https://img.shields.io/badge/Made%20in-Kenya%20🇰🇪-006600)](https://xcasper.space)
 
-[Live Demo](https://monitor.xwolf.space) · [Report Bug](https://github.com/WOLFTECH-254/wolfXmonitor/issues) · [Request Feature](https://github.com/WOLFTECH-254/wolfXmonitor/issues)
+[Live Demo](https://monitor.xwolf.space) · [Documentation](https://monitor.xwolf.space/docs) · [Report Bug](https://github.com/WOLFTECH-254/wolfXmonitor/issues) · [Request Feature](https://github.com/WOLFTECH-254/wolfXmonitor/issues)
 
 </div>
 
@@ -80,6 +80,11 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 - Chat notifications — Telegram bot token + Twilio WhatsApp credentials
 - Footer & social links — edit footer content without code
 - Country stats — see which countries your users are from
+
+### Documentation
+- **Full docs site** at [monitor.xwolf.space/docs](https://monitor.xwolf.space/docs) — accessible without logging in
+- Covers getting started, monitors, all alert channels, plans, status page, admin setup, and API reference
+- Sticky table of contents, mobile-friendly, matches the dark green theme
 
 ### Design
 - Dark green-tinted theme (`hsl(130,12%,4%)` base) throughout

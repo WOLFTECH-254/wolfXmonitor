@@ -17,6 +17,7 @@ import Upgrade from "@/pages/upgrade";
 import Incidents from "@/pages/incidents";
 import Monitoring from "@/pages/monitoring";
 import Settings from "@/pages/settings";
+import Docs from "@/pages/docs";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} />}
       </Route>
+      <Route path="/docs" component={Docs} />
       <Route component={NotFound} />
     </Switch>
   );
