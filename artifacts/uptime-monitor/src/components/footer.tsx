@@ -37,6 +37,7 @@ const FEATURES_LINKS = [
 const COMPANY_LINKS = [
   { href: "https://xwolf.space",           label: "About Wolf Tech",    Icon: BookOpen,    external: true },
   { href: "mailto:wolfsilent906@gmail.com", label: "Contact Support",    Icon: Mail,        external: true },
+  { href: "/developer",                    label: "Developer",          Icon: BookOpen,    external: false },
   { href: "/admin",                        label: "Admin Panel",        Icon: ShieldCheck, external: false },
 ];
 

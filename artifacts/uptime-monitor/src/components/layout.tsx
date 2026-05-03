@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Radio, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard, Globe, ChevronDown, ChevronRight, Activity, Server, Users, CreditCard, Settings, Menu, X, BellRing, BookOpen, UserCircle } from "lucide-react";
+import { Radio, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard, Globe, ChevronDown, ChevronRight, Activity, Server, Users, CreditCard, Settings, Menu, X, BellRing, BookOpen, UserCircle, Code2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
@@ -26,12 +26,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const ADMIN_TABS = [
-    { id: "overview",  label: "Overview",  Icon: Activity },
-    { id: "monitors",  label: "Monitors",  Icon: Server },
-    { id: "users",     label: "Users",     Icon: Users },
-    { id: "activity",  label: "Activity",  Icon: Radio },
-    { id: "payments",  label: "Payments",  Icon: CreditCard },
-    { id: "settings",  label: "Settings",  Icon: Settings },
+    { id: "overview",   label: "Overview",   Icon: Activity },
+    { id: "monitors",   label: "Monitors",   Icon: Server },
+    { id: "users",      label: "Users",      Icon: Users },
+    { id: "activity",   label: "Activity",   Icon: Radio },
+    { id: "payments",   label: "Payments",   Icon: CreditCard },
+    { id: "settings",   label: "Settings",   Icon: Settings },
+    { id: "developer",  label: "Developer",  Icon: Code2 },
   ] as const;
 
   const currentTab = isOnAdmin
@@ -130,6 +131,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           >
             <UserCircle className="w-4 h-4" />
             My Profile
+          </Button>
+        </Link>
+        <Link href="/developer">
+          <Button
+            variant={location === "/developer" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
+          >
+            <Code2 className="w-4 h-4" />
+            Developer
           </Button>
         </Link>
 

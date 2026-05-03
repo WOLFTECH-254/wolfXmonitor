@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube, Shield, Ban, AlertTriangle, CheckCheck, MessageCircle } from "lucide-react";
+import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube, Shield, Ban, AlertTriangle, CheckCheck, MessageCircle, Code2, Plus, Trash } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +45,155 @@ interface SecurityEvent { id: number; type: string; ip: string; path: string | n
 interface BlockedIp { id: number; ip: string; reason: string | null; blockedBy: number | null; createdAt: string; }
 interface SecurityStats { total: number; unresolved: number; blocked: number; byType: Record<string, number>; }
 
-type Tab = "overview" | "monitors" | "users" | "activity" | "payments" | "settings" | "security";
+type Tab = "overview" | "monitors" | "users" | "activity" | "payments" | "settings" | "security" | "developer";
+
+// ── Developer Profile Settings ────────────────────────────────────────────────
+interface DevProfile { name: string; title: string; bio: string; avatarUrl: string; githubUsername: string; githubUrl: string; twitterUrl: string; linkedinUrl: string; websiteUrl: string; coffeeUrl: string; customLinks: { label: string; url: string }[]; }
+
+function DeveloperSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [githubUsername, setGithubUsername] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [coffeeUrl, setCoffeeUrl] = useState("");
+  const [customLinks, setCustomLinks] = useState<{ label: string; url: string }[]>([]);
+  const [newLinkLabel, setNewLinkLabel] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+
+  const { data: s } = useQuery<DevProfile>({
+    queryKey: ["admin-dev-settings"],
+    queryFn: () => apiFetch("/api/admin/settings/developer"),
+  });
+
+  useEffect(() => {
+    if (s) {
+      setName(s.name); setTitle(s.title); setBio(s.bio);
+      setAvatarUrl(s.avatarUrl); setGithubUsername(s.githubUsername);
+      setGithubUrl(s.githubUrl); setTwitterUrl(s.twitterUrl);
+      setLinkedinUrl(s.linkedinUrl); setWebsiteUrl(s.websiteUrl);
+      setCoffeeUrl(s.coffeeUrl); setCustomLinks(s.customLinks);
+    }
+  }, [s]);
+
+  const save = useMutation({
+    mutationFn: () => apiFetch("/api/admin/settings/developer", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, title, bio, avatarUrl, githubUsername, githubUrl, twitterUrl, linkedinUrl, websiteUrl, coffeeUrl, customLinks }),
+    }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-dev-settings"] }); toast({ title: "Developer profile saved" }); },
+    onError: () => toast({ variant: "destructive", title: "Failed to save" }),
+  });
+
+  const addCustomLink = () => {
+    if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
+    setCustomLinks((prev) => [...prev, { label: newLinkLabel.trim(), url: newLinkUrl.trim() }]);
+    setNewLinkLabel(""); setNewLinkUrl("");
+  };
+
+  const removeCustomLink = (i: number) => setCustomLinks((prev) => prev.filter((_, idx) => idx !== i));
+
+  const inputCls = "w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors";
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2.5 pb-1">
+        <Code2 className="w-4 h-4 text-primary" />
+        <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">Developer Profile</h3>
+      </div>
+      <p className="font-mono text-[11px] text-muted-foreground -mt-2">
+        This is shown publicly at <span className="text-primary">/developer</span>
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Display Name</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Wolf Tech" className={inputCls} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Title / Role</label>
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Full Stack Developer" className={inputCls} />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Bio</label>
+        <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="A short bio shown on the developer page…" className={`${inputCls} resize-none`} />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Avatar Image URL</label>
+        <input type="url" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://avatars.githubusercontent.com/u/…" className={inputCls} />
+        {avatarUrl && <img src={avatarUrl} alt="preview" className="w-12 h-12 rounded-full border border-border object-cover mt-1" />}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GitHub Username</label>
+          <input type="text" value={githubUsername} onChange={(e) => setGithubUsername(e.target.value)} placeholder="wolftech254" className={inputCls} />
+          <p className="font-mono text-[9px] text-muted-foreground/60">Used to fetch live GitHub stats</p>
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">GitHub Profile URL</label>
+          <input type="url" value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} placeholder="https://github.com/wolftech254" className={inputCls} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Twitter / X URL</label>
+          <input type="url" value={twitterUrl} onChange={(e) => setTwitterUrl(e.target.value)} placeholder="https://twitter.com/…" className={inputCls} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">LinkedIn URL</label>
+          <input type="url" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} placeholder="https://linkedin.com/in/…" className={inputCls} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Personal Website</label>
+          <input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://xwolf.space" className={inputCls} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Buy Me a Coffee URL</label>
+          <input type="url" value={coffeeUrl} onChange={(e) => setCoffeeUrl(e.target.value)} placeholder="https://buymeacoffee.com/…" className={inputCls} />
+        </div>
+      </div>
+
+      {/* Custom links */}
+      <div className="space-y-3">
+        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Custom Links</label>
+        {customLinks.map((link, i) => (
+          <div key={i} className="flex items-center gap-2 bg-background border border-border rounded px-3 py-2">
+            <span className="font-mono text-sm text-foreground flex-1 truncate">{link.label}</span>
+            <span className="font-mono text-[11px] text-muted-foreground flex-1 truncate">{link.url}</span>
+            <button onClick={() => removeCustomLink(i)} className="text-muted-foreground hover:text-destructive transition-colors ml-1">
+              <Trash className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        <div className="flex gap-2">
+          <input type="text" value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Portfolio)" className={`${inputCls} flex-1`} />
+          <input type="url" value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="https://…" className={`${inputCls} flex-1`} />
+          <Button variant="outline" size="sm" onClick={addCustomLink} className="shrink-0 font-mono text-xs gap-1.5">
+            <Plus className="w-3.5 h-3.5" /> Add
+          </Button>
+        </div>
+      </div>
+
+      <Button onClick={() => save.mutate()} disabled={save.isPending} className="font-mono text-xs uppercase tracking-widest">
+        {save.isPending ? "Saving…" : "Save Developer Profile"}
+      </Button>
+    </div>
+  );
+}
 
 // ── Email Settings ────────────────────────────────────────────────────────────
 function EmailSection() {
@@ -1058,6 +1206,15 @@ export default function Admin() {
             </div>
             <div className="border border-border bg-card rounded p-6">
               <SecurityNotifSection />
+            </div>
+          </div>
+        )}
+
+        {/* Developer tab */}
+        {tab === "developer" && (
+          <div className="max-w-2xl space-y-8">
+            <div className="border border-border bg-card rounded p-6">
+              <DeveloperSection />
             </div>
           </div>
         )}

@@ -490,4 +490,71 @@ router.post("/admin/settings/email/test", requireAdmin, async (req, res) => {
   }
 });
 
+// ── Developer profile settings ────────────────────────────────────────────────
+
+const DEV_KEYS = [
+  "dev_name", "dev_title", "dev_bio", "dev_avatar_url",
+  "dev_github_username", "dev_github_url",
+  "dev_twitter_url", "dev_linkedin_url", "dev_website_url",
+  "dev_coffee_url", "dev_custom_links",
+] as const;
+
+function buildDevProfile(map: Map<string, string>) {
+  return {
+    name:           map.get("dev_name")            ?? "",
+    title:          map.get("dev_title")           ?? "",
+    bio:            map.get("dev_bio")             ?? "",
+    avatarUrl:      map.get("dev_avatar_url")      ?? "",
+    githubUsername: map.get("dev_github_username") ?? "",
+    githubUrl:      map.get("dev_github_url")      ?? "",
+    twitterUrl:     map.get("dev_twitter_url")     ?? "",
+    linkedinUrl:    map.get("dev_linkedin_url")    ?? "",
+    websiteUrl:     map.get("dev_website_url")     ?? "",
+    coffeeUrl:      map.get("dev_coffee_url")      ?? "",
+    customLinks:    JSON.parse(map.get("dev_custom_links") ?? "[]") as { label: string; url: string }[],
+  };
+}
+
+router.get("/settings/developer", async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json(buildDevProfile(map));
+});
+
+router.get("/admin/settings/developer", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json(buildDevProfile(map));
+});
+
+router.put("/admin/settings/developer", requireAdmin, async (req, res) => {
+  const {
+    name, title, bio, avatarUrl,
+    githubUsername, githubUrl,
+    twitterUrl, linkedinUrl, websiteUrl,
+    coffeeUrl, customLinks,
+  } = req.body as {
+    name?: string; title?: string; bio?: string; avatarUrl?: string;
+    githubUsername?: string; githubUrl?: string;
+    twitterUrl?: string; linkedinUrl?: string; websiteUrl?: string;
+    coffeeUrl?: string; customLinks?: { label: string; url: string }[];
+  };
+
+  const pairs: [string, string][] = [
+    ["dev_name",            name            ?? ""],
+    ["dev_title",           title           ?? ""],
+    ["dev_bio",             bio             ?? ""],
+    ["dev_avatar_url",      avatarUrl       ?? ""],
+    ["dev_github_username", githubUsername  ?? ""],
+    ["dev_github_url",      githubUrl       ?? ""],
+    ["dev_twitter_url",     twitterUrl      ?? ""],
+    ["dev_linkedin_url",    linkedinUrl     ?? ""],
+    ["dev_website_url",     websiteUrl      ?? ""],
+    ["dev_coffee_url",      coffeeUrl       ?? ""],
+    ["dev_custom_links",    JSON.stringify(customLinks ?? [])],
+  ];
+  for (const [key, value] of pairs) await upsertSetting(key, value);
+  res.json({ ok: true });
+});
+
 export default router;
