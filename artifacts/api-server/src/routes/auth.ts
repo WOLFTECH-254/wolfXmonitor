@@ -164,6 +164,59 @@ router.get("/auth/me", async (req, res) => {
   res.json(safeUser(user));
 });
 
+// ── Profile update ───────────────────────────────────────────────────────────
+
+router.put("/me/profile", async (req, res) => {
+  if (!req.session.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const { name, email, notificationEmail } = req.body as {
+    name?: string; email?: string; notificationEmail?: string;
+  };
+  if (!name?.trim() || !email?.trim()) {
+    res.status(400).json({ error: "Name and email are required" });
+    return;
+  }
+  const emailLower = email.toLowerCase().trim();
+  const existing = await db.select().from(usersTable)
+    .where(eq(usersTable.email, emailLower));
+  if (existing.length > 0 && existing[0].id !== req.session.userId) {
+    res.status(409).json({ error: "That email is already in use by another account" });
+    return;
+  }
+  const [updated] = await db.update(usersTable).set({
+    name: name.trim(),
+    email: emailLower,
+    notificationEmail: notificationEmail?.trim() || emailLower,
+  }).where(eq(usersTable.id, req.session.userId)).returning();
+  logger.info({ userId: req.session.userId }, "Profile updated");
+  res.json(safeUser(updated));
+});
+
+router.put("/me/password", async (req, res) => {
+  if (!req.session.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword?: string; newPassword?: string;
+  };
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: "Current password and new password are required" });
+    return;
+  }
+  if (newPassword.length < 8) {
+    res.status(400).json({ error: "New password must be at least 8 characters" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
+  if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) {
+    res.status(400).json({ error: "Current password is incorrect" });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+  await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, req.session.userId));
+  logger.info({ userId: req.session.userId }, "Password changed");
+  res.json({ ok: true });
+});
+
 // ── Notification channel settings ────────────────────────────────────────────
 
 router.get("/me/channels", async (req, res) => {
