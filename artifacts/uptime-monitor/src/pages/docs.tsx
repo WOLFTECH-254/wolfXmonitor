@@ -16,6 +16,7 @@ const sections = [
   { id: "admin",        label: "Admin Panel" },
   { id: "api",          label: "API Reference" },
   { id: "faq",          label: "FAQ" },
+  { id: "privacy",      label: "Privacy" },
 ];
 
 function useActiveSection() {
@@ -239,8 +240,8 @@ export default function Docs() {
           <H3>2. Add your first monitor</H3>
           <P>
             Go to <Code>New Monitor</Code> in the sidebar. Enter a name and the URL you want to watch
-            (e.g. <Code>https://yourdomain.com</Code>). wolfXmonitor will ping it every minute from the
-            moment you save it.
+            (e.g. <Code>https://yourdomain.com</Code>). wolfXmonitor pings it <strong className="text-foreground">immediately</strong> the
+            moment you save, then continues on your chosen interval.
           </P>
           <H3>3. Set up alerts</H3>
           <P>
@@ -260,12 +261,21 @@ export default function Docs() {
             rows={[
               ["Name", "Friendly label for the monitor — shown in alerts and the dashboard"],
               ["URL", "The full URL to ping, including https://"],
-              ["Interval", "How often to check — default 1 minute"],
+              ["Interval", "How often to check — 1, 5, 10, 15, 30, or 60 minutes. Default: 5 minutes"],
               ["Status", "Live badge showing up / down / unknown"],
               ["Uptime %", "Rolling 30-day uptime percentage"],
               ["Response time", "Average latency recorded per ping"],
             ]}
           />
+          <Note>
+            Every new monitor is pinged <strong>immediately</strong> on creation — you see a live status
+            within seconds, no matter what interval you chose. Monitors that have never been checked are
+            also pinged instantly whenever the server restarts.
+          </Note>
+          <P>
+            When a ping fails, wolfXmonitor records the exact reason — DNS failure, connection refused,
+            SSL error, timeout, or HTTP status code (404, 502, etc.) — and includes it in every alert.
+          </P>
           <P>
             Free plan users can monitor up to the limit set by the admin (shown on the Upgrade page).
             Pro users have no monitor limit.
@@ -425,6 +435,14 @@ export default function Docs() {
               ["POST", "/api/me/channels/test", "Send a test message to telegram / whatsapp / discord"],
             ]}
           />
+          <H3>Profile</H3>
+          <Table
+            headers={["Method", "Endpoint", "Description"]}
+            rows={[
+              ["PUT", "/api/me/profile",   "Update name, notification email, and notification toggle"],
+              ["PUT", "/api/me/password",  "Change password — requires current password for verification"],
+            ]}
+          />
           <H3>Dashboard & Public</H3>
           <Table
             headers={["Method", "Endpoint", "Description"]}
@@ -485,18 +503,45 @@ export default function Docs() {
             Anyone with the link can check the health of your monitored endpoints.
           </P>
 
+          {/* Privacy */}
+          <H2 id="privacy">Privacy</H2>
+          <P>
+            wolfXmonitor collects only the data required to operate the service: your name, email address,
+            the URLs you choose to monitor, and payment details processed exclusively by Paystack (we never
+            store card numbers). Ping results and alert history are stored in PostgreSQL on the VPS and are
+            never shared with third parties.
+          </P>
+          <P>
+            Alert delivery involves third-party services — Brevo (email), Telegram Bot API, Twilio (WhatsApp),
+            and Discord webhooks. Each service receives only the minimum data needed: your email or chat ID
+            and the monitor name / URL in the alert message. See each provider's privacy policy for their
+            data-handling practices.
+          </P>
+          <P>
+            You can delete your account and all associated data at any time by contacting the platform admin.
+            For the full policy, see{" "}
+            <Link href="/privacy" className="text-primary hover:underline">
+              monitor.xwolf.space/privacy
+            </Link>.
+          </P>
+
           <div className="mt-16 pt-8 border-t border-border flex items-center justify-between">
             <span className="font-mono text-xs text-muted-foreground">
               wolfXmonitor · monitor.xwolf.space
             </span>
-            <a
-              href="https://github.com/WOLFTECH-254/wolfXmonitor/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-            >
-              Report an issue <ExternalLink className="w-3 h-3" />
-            </a>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors">
+                Privacy Policy
+              </Link>
+              <a
+                href="https://github.com/WOLFTECH-254/wolfXmonitor/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              >
+                Report an issue <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
         </article>
       </div>

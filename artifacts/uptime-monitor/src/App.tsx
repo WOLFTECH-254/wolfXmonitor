@@ -19,6 +19,7 @@ import Monitoring from "@/pages/monitoring";
 import Settings from "@/pages/settings";
 import Docs from "@/pages/docs";
 import Profile from "@/pages/profile";
+import Privacy from "@/pages/privacy";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -88,6 +89,7 @@ function Router() {
         {() => <ProtectedRoute component={Settings} />}
       </Route>
       <Route path="/docs" component={Docs} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/profile">
         {() => <ProtectedRoute component={Profile} />}
       </Route>
