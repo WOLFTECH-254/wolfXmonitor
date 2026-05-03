@@ -231,6 +231,8 @@ server {
 
 <img src="attached_assets/new-screenshot.jpg" alt="Dashboard" width="700"/>
 
+<img src="attached_assets/dashboard-screenshot.jpg" alt="Monitor Detail" width="700"/>
+
 ---
 
 ## Roadmap
