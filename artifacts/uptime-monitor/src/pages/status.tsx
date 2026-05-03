@@ -46,7 +46,7 @@ export default function StatusPage() {
           </div>
           <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
         </Link>
-        <a href="/" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
+        <a href="/dashboard" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
           Back to site
         </a>
       </nav>
