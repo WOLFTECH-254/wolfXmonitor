@@ -1,6 +1,6 @@
 <div align="center">
 
-![wolfXmonitor](artifacts/uptime-monitor/public/og-image.png)
+<img src="artifacts/uptime-monitor/public/og-image.png" alt="wolfXmonitor" width="750"/>
 
 # wolfXmonitor
 
@@ -227,9 +227,9 @@ server {
 
 ## Screenshots
 
-| Landing Page | Dashboard | Admin Panel |
-|-------------|-----------|-------------|
-| Dark hero with live counter | Monitor grid with uptime % | Full control panel |
+<img src="artifacts/uptime-monitor/public/og-image.png" alt="Landing Page" width="700"/>
+
+<img src="attached_assets/new-screenshot.jpg" alt="Dashboard" width="700"/>
 
 ---
 
