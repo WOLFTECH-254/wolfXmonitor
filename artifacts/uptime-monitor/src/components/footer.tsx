@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Twitter, Instagram, Facebook, Linkedin, Youtube, Zap, Activity, Bell, BarChart2, Globe, ShieldCheck, BookOpen, Mail } from "lucide-react";
+import { Twitter, Instagram, Facebook, Linkedin, Youtube, Zap, Activity, Bell, BarChart2, Globe, ShieldCheck, BookOpen, Mail, FileText, Lock } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -23,6 +23,7 @@ const PRODUCT_LINKS = [
   { href: "/pricing",  label: "Pricing",          Icon: BarChart2 },
   { href: "/signup",   label: "Get Started Free", Icon: Zap },
   { href: "/signin",   label: "Log In",           Icon: Globe },
+  { href: "/docs",     label: "Documentation",    Icon: FileText },
 ];
 
 const FEATURES_LINKS = [
@@ -146,29 +147,31 @@ export function Footer() {
             </ul>
 
             {/* Legal */}
-            {(data?.privacyUrl || data?.termsUrl) && (
-              <>
-                <p className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-bold mt-2">Legal</p>
-                <ul className="flex flex-col gap-3">
-                  {data?.privacyUrl && (
-                    <li>
-                      <a href={data.privacyUrl} target="_blank" rel="noreferrer"
-                        className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
-                        Privacy Policy
-                      </a>
-                    </li>
-                  )}
-                  {data?.termsUrl && (
-                    <li>
-                      <a href={data.termsUrl} target="_blank" rel="noreferrer"
-                        className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
-                        Terms of Service
-                      </a>
-                    </li>
-                  )}
-                </ul>
-              </>
-            )}
+            <p className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-bold mt-2">Legal</p>
+            <ul className="flex flex-col gap-3">
+              <li>
+                <Link href="/privacy"
+                  className="group flex items-center gap-2 font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                  <Lock className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs"
+                  className="group flex items-center gap-2 font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                  <FileText className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                  Documentation
+                </Link>
+              </li>
+              {data?.termsUrl && (
+                <li>
+                  <a href={data.termsUrl} target="_blank" rel="noreferrer"
+                    className="font-mono text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                    Terms of Service
+                  </a>
+                </li>
+              )}
+            </ul>
           </div>
         </div>
 
