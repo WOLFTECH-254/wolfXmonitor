@@ -265,7 +265,7 @@ router.post("/monitors/:id/ping", requireAuth, async (req, res) => {
         sendWhatsAppMessage(user.whatsappPhone, buildDownMessagePlain(monitor.name, monitor.url, result.error)).catch(() => {});
       }
       if (user.discordWebhookUrl) {
-        sendDiscordAlert(user.discordWebhookUrl, "down", monitor.name, monitor.url, { error: result.error }).catch(() => {});
+        sendDiscordAlert(user.discordWebhookUrl, "down", monitor.name, monitor.url, { error: result.error, statusCode: result.statusCode }).catch(() => {});
       }
     }
   }

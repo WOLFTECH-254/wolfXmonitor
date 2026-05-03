@@ -121,7 +121,7 @@ export async function sendDiscordAlert(
   type: "down" | "recovery" | "test",
   monitorName: string,
   monitorUrl: string,
-  extra?: { error?: string | null; responseTimeMs?: number | null }
+  extra?: { error?: string | null; statusCode?: number | null; responseTimeMs?: number | null }
 ): Promise<void> {
   const isDown = type === "down";
   const isTest = type === "test";
@@ -140,13 +140,30 @@ export async function sendDiscordAlert(
     descriptionLines.push(`wolfXmonitor alerts are now active on this channel.`);
   } else if (isDown) {
     descriptionLines.push(`**${monitorName}** is **DOWN**`);
-    if (extra?.error) descriptionLines.push(`\`Error: ${extra.error}\``);
     descriptionLines.push(`The wolf is watching — you'll be notified when it recovers.`);
   } else {
     descriptionLines.push(`**${monitorName}** is back **ONLINE**`);
-    if (extra?.responseTimeMs) descriptionLines.push(`Response time: \`${extra.responseTimeMs}ms\``);
     descriptionLines.push(`All clear. The wolf continues watching.`);
   }
+
+  const fields: { name: string; value: string; inline: boolean }[] = [
+    { name: "🌐 URL", value: monitorUrl, inline: false },
+  ];
+
+  if (isDown) {
+    if (extra?.statusCode) {
+      fields.push({ name: "⚠️ HTTP Status", value: `\`${extra.statusCode}\` — ${httpStatusLabel(extra.statusCode)}`, inline: true });
+    }
+    if (extra?.error) {
+      fields.push({ name: "❌ Reason", value: extra.error, inline: false });
+    }
+  }
+
+  if (!isDown && !isTest && extra?.responseTimeMs) {
+    fields.push({ name: "⚡ Response Time", value: `\`${extra.responseTimeMs}ms\``, inline: true });
+  }
+
+  fields.push({ name: "🕐 Detected", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true });
 
   const payload = {
     embeds: [
@@ -154,10 +171,7 @@ export async function sendDiscordAlert(
         title: `${emoji} ${title}`,
         description: descriptionLines.join("\n"),
         color,
-        fields: [
-          { name: "URL", value: monitorUrl, inline: true },
-          { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
-        ],
+        fields,
         footer: { text: "wolfXmonitor · monitor.xwolf.space" },
       },
     ],
@@ -172,4 +186,23 @@ export async function sendDiscordAlert(
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ err: msg }, "Failed to send Discord alert");
   }
+}
+
+function httpStatusLabel(code: number): string {
+  const labels: Record<number, string> = {
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+    408: "Request Timeout",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    501: "Not Implemented",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
+    505: "HTTP Version Not Supported",
+  };
+  return labels[code] ?? (code >= 500 ? "Server Error" : code >= 400 ? "Client Error" : code >= 300 ? "Redirect" : "Unknown");
 }

@@ -72,7 +72,7 @@ async function runPing(monitorId: number, url: string): Promise<void> {
             );
           }
           if (user.discordWebhookUrl) {
-            await sendDiscordAlert(user.discordWebhookUrl, "down", monitor.name, url, { error: result.error });
+            await sendDiscordAlert(user.discordWebhookUrl, "down", monitor.name, url, { error: result.error, statusCode: result.statusCode });
           }
         } else if (justRecovered) {
           await sendRecoveryAlert({
