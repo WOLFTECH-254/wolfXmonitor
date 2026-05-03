@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="artifacts/uptime-monitor/public/og-image.png" alt="wolfXmonitor" width="750"/>
+<img src="artifacts/uptime-monitor/public/og-image.png" alt="wolfXmonitor" width="550"/>
 
 # wolfXmonitor
 
