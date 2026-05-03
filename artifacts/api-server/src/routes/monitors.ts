@@ -16,6 +16,7 @@ import { pingUrl } from "../lib/pinger";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
 import { requireAuth } from "../middlewares/auth";
 import { sendDownAlert, sendWelcomeAlert, sendDeleteAlert } from "../lib/mailer";
+import { sendTelegramMessage, sendWhatsAppMessage, sendDiscordAlert, buildDownMessage, buildDownMessagePlain } from "../lib/notifier";
 
 const router = Router();
 
@@ -53,7 +54,7 @@ router.post("/monitors", requireAuth, async (req, res) => {
     })
     .returning();
   if (monitor.active) {
-    scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes);
+    scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes, true);
   }
 
   if (user?.notificationsEnabled) {
@@ -257,6 +258,15 @@ router.post("/monitors/:id/ping", requireAuth, async (req, res) => {
     if (user?.notificationsEnabled) {
       const emailTo = user.notificationEmail ?? user.email;
       await sendDownAlert({ toEmail: emailTo, toName: user.name, monitorName: monitor.name, monitorUrl: monitor.url, error: result.error });
+      if (user.telegramChatId) {
+        sendTelegramMessage(user.telegramChatId, buildDownMessage(monitor.name, monitor.url, result.error)).catch(() => {});
+      }
+      if (user.whatsappPhone) {
+        sendWhatsAppMessage(user.whatsappPhone, buildDownMessagePlain(monitor.name, monitor.url, result.error)).catch(() => {});
+      }
+      if (user.discordWebhookUrl) {
+        sendDiscordAlert(user.discordWebhookUrl, "down", monitor.name, monitor.url, { error: result.error }).catch(() => {});
+      }
     }
   }
 

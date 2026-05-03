@@ -105,13 +105,16 @@ async function runPing(monitorId: number, url: string): Promise<void> {
   }
 }
 
-export function scheduleMonitor(id: number, url: string, intervalMinutes: number): void {
+export function scheduleMonitor(id: number, url: string, intervalMinutes: number, immediate = false): void {
   if (activeTimers.has(id)) {
     clearInterval(activeTimers.get(id)!);
   }
   const intervalMs = intervalMinutes * 60 * 1000;
   const timer = setInterval(() => runPing(id, url), intervalMs);
   activeTimers.set(id, timer);
+  if (immediate) {
+    runPing(id, url).catch((err) => logger.error({ err, monitorId: id }, "Immediate ping error"));
+  }
 }
 
 export function unscheduleMonitor(id: number): void {
@@ -126,7 +129,9 @@ export async function initScheduler(): Promise<void> {
   const monitors = await db.select().from(monitorsTable);
   for (const monitor of monitors) {
     if (monitor.active) {
-      scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes);
+      // Fire an immediate ping for monitors that have never been checked
+      const neverPinged = !monitor.lastPingedAt;
+      scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes, neverPinged);
     }
   }
   logger.info({ count: monitors.filter((m) => m.active).length }, "Scheduler initialized");
