@@ -133,7 +133,7 @@ export async function sendWelcomeAlert(opts: {
     await sendEmail(config, {
       sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
-      subject: `✓ Now watching: ${monitorName}`,
+      subject: `Now watching: ${monitorName}`,
       htmlContent: html,
     });
     logger.info({ toEmail, monitorName }, "Welcome alert email sent");
@@ -173,7 +173,7 @@ export async function sendDownAlert(opts: {
     await sendEmail(config, {
       sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
-      subject: `⚠ DOWN: ${monitorName} is unreachable`,
+      subject: `[DOWN] ${monitorName} is unreachable`,
       htmlContent: html,
     });
     logger.info({ toEmail, monitorName }, "Down alert email sent");
@@ -251,7 +251,7 @@ export async function sendRecoveryAlert(opts: {
     await sendEmail(config, {
       sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
-      subject: `✓ RECOVERED: ${monitorName} is back online`,
+      subject: `[RECOVERED] ${monitorName} is back online`,
       htmlContent: html,
     });
     logger.info({ toEmail, monitorName }, "Recovery alert email sent");
