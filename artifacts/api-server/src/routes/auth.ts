@@ -7,6 +7,12 @@ import { getClientIp } from "../middlewares/ip-block";
 import { sendSecurityAlert } from "../lib/security-mailer";
 import { sendSignupWelcomeEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
+import {
+  sendTelegramMessage,
+  sendWhatsAppMessage,
+  buildDownMessage,
+  buildDownMessagePlain,
+} from "../lib/notifier";
 
 const router = Router();
 
@@ -50,6 +56,8 @@ function safeUser(u: typeof usersTable.$inferSelect) {
     isAdmin: u.isAdmin,
     country: u.country,
     plan: u.plan,
+    telegramChatId: u.telegramChatId ?? null,
+    whatsappPhone: u.whatsappPhone ?? null,
   };
 }
 
@@ -152,6 +160,60 @@ router.get("/auth/me", async (req, res) => {
     return;
   }
   res.json(safeUser(user));
+});
+
+// ── Notification channel settings ────────────────────────────────────────────
+
+router.get("/me/channels", async (req, res) => {
+  if (!req.session.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
+  if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+  res.json({
+    telegramChatId: user.telegramChatId ?? null,
+    whatsappPhone: user.whatsappPhone ?? null,
+  });
+});
+
+router.put("/me/channels", async (req, res) => {
+  if (!req.session.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const { telegramChatId, whatsappPhone } = req.body as {
+    telegramChatId?: string;
+    whatsappPhone?: string;
+  };
+  await db.update(usersTable).set({
+    telegramChatId: telegramChatId?.trim() || null,
+    whatsappPhone: whatsappPhone?.trim() || null,
+  }).where(eq(usersTable.id, req.session.userId));
+  logger.info({ userId: req.session.userId }, "Notification channels updated");
+  res.json({ ok: true });
+});
+
+router.post("/me/channels/test", async (req, res) => {
+  if (!req.session.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const { channel } = req.body as { channel?: "telegram" | "whatsapp" };
+  if (!channel) { res.status(400).json({ error: "channel required" }); return; }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
+  if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
+
+  if (channel === "telegram") {
+    if (!user.telegramChatId) { res.status(400).json({ error: "No Telegram Chat ID saved yet." }); return; }
+    await sendTelegramMessage(
+      user.telegramChatId,
+      buildDownMessage("test-monitor", "https://example.com", null)
+        .replace("is DOWN", "test — ✅ Telegram is connected!")
+        .replace("The wolf is watching — you'll be notified when it recovers.", "wolfXmonitor alerts are now active on this chat.")
+    );
+  } else {
+    if (!user.whatsappPhone) { res.status(400).json({ error: "No WhatsApp number saved yet." }); return; }
+    await sendWhatsAppMessage(
+      user.whatsappPhone,
+      buildDownMessagePlain("test-monitor", "https://example.com", null)
+        .replace("is DOWN", "test — WhatsApp is connected!")
+        .replace("You'll be notified when it recovers.", "wolfXmonitor alerts are now active on this number.")
+    );
+  }
+  res.json({ ok: true });
 });
 
 export default router;

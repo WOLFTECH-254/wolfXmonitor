@@ -12,6 +12,8 @@ export const usersTable = pgTable("users", {
   plan: text("plan").notNull().default("free"),
   planSlug: text("plan_slug"),
   planExpiresAt: timestamp("plan_expires_at"),
+  telegramChatId: text("telegram_chat_id"),
+  whatsappPhone: text("whatsapp_phone"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

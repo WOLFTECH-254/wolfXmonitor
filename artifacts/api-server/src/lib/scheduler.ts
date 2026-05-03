@@ -3,6 +3,14 @@ import { eq } from "drizzle-orm";
 import { pingUrl } from "./pinger";
 import { logger } from "./logger";
 import { sendDownAlert, sendRecoveryAlert } from "./mailer";
+import {
+  sendTelegramMessage,
+  sendWhatsAppMessage,
+  buildDownMessage,
+  buildDownMessagePlain,
+  buildRecoveryMessage,
+  buildRecoveryMessagePlain,
+} from "./notifier";
 
 const activeTimers = new Map<number, NodeJS.Timeout>();
 
@@ -50,6 +58,18 @@ async function runPing(monitorId: number, url: string): Promise<void> {
             monitorUrl: url,
             error: result.error,
           });
+          if (user.telegramChatId) {
+            await sendTelegramMessage(
+              user.telegramChatId,
+              buildDownMessage(monitor.name, url, result.error)
+            );
+          }
+          if (user.whatsappPhone) {
+            await sendWhatsAppMessage(
+              user.whatsappPhone,
+              buildDownMessagePlain(monitor.name, url, result.error)
+            );
+          }
         } else if (justRecovered) {
           await sendRecoveryAlert({
             toEmail: emailTo,
@@ -58,6 +78,18 @@ async function runPing(monitorId: number, url: string): Promise<void> {
             monitorUrl: url,
             responseTimeMs: result.responseTimeMs,
           });
+          if (user.telegramChatId) {
+            await sendTelegramMessage(
+              user.telegramChatId,
+              buildRecoveryMessage(monitor.name, url, result.responseTimeMs)
+            );
+          }
+          if (user.whatsappPhone) {
+            await sendWhatsAppMessage(
+              user.whatsappPhone,
+              buildRecoveryMessagePlain(monitor.name, url, result.responseTimeMs)
+            );
+          }
         }
       }
     }

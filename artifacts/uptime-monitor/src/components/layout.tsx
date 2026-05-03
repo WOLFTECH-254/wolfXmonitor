@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Radio, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard, Globe, ChevronDown, ChevronRight, Activity, Server, Users, CreditCard, Settings, Menu, X } from "lucide-react";
+import { Radio, Plus, Zap, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard, Globe, ChevronDown, ChevronRight, Activity, Server, Users, CreditCard, Settings, Menu, X, BellRing } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
@@ -94,6 +94,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           >
             <AlertTriangle className="w-4 h-4" />
             Incidents
+          </Button>
+        </Link>
+        <Link href="/settings">
+          <Button
+            variant={location === "/settings" ? "secondary" : "ghost"}
+            className="w-full justify-start gap-3 font-mono text-sm h-9 rounded"
+          >
+            <BellRing className="w-4 h-4" />
+            Notifications
           </Button>
         </Link>
         <Link href="/status">

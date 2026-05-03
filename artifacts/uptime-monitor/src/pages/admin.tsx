@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube, Shield, Ban, AlertTriangle, CheckCheck } from "lucide-react";
+import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube, Shield, Ban, AlertTriangle, CheckCheck, MessageCircle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -532,6 +532,107 @@ function SecurityNotifSection() {
   );
 }
 
+// ── Chat Channel Settings (Telegram + WhatsApp) ───────────────────────────────
+interface ChatSettings { telegramBotToken: string; twilioAccountSid: string; twilioAuthToken: string; twilioWhatsappFrom: string; }
+
+function ChatSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showTelegramToken, setShowTelegramToken] = useState(false);
+  const [showTwilioToken, setShowTwilioToken] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState("");
+  const [twilioAccountSid, setTwilioAccountSid] = useState("");
+  const [twilioAuthToken, setTwilioAuthToken] = useState("");
+  const [twilioWhatsappFrom, setTwilioWhatsappFrom] = useState("");
+
+  const { data } = useQuery<ChatSettings>({
+    queryKey: ["admin-chat-settings"],
+    queryFn: () => apiFetch("/api/admin/settings/chat"),
+  });
+
+  useEffect(() => {
+    if (data) {
+      setTelegramBotToken(data.telegramBotToken ?? "");
+      setTwilioAccountSid(data.twilioAccountSid ?? "");
+      setTwilioAuthToken(data.twilioAuthToken ?? "");
+      setTwilioWhatsappFrom(data.twilioWhatsappFrom ?? "");
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => apiFetch("/api/admin/settings/chat", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ telegramBotToken, twilioAccountSid, twilioAuthToken, twilioWhatsappFrom }),
+    }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-chat-settings"] }); toast({ title: "Chat settings saved" }); },
+    onError: () => toast({ variant: "destructive", title: "Failed to save" }),
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="font-display text-2xl uppercase tracking-wide text-foreground flex items-center gap-2">
+          <MessageCircle className="w-5 h-5 text-primary" /> Chat Notifications
+        </h3>
+        <p className="font-mono text-[11px] text-muted-foreground mt-1">
+          Configure Telegram and WhatsApp (Twilio) so users can receive site incident alerts on chat platforms.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-[#2AABEE] border-b border-border pb-2">Telegram Bot</p>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Bot Token</label>
+          <div className="relative">
+            <input
+              type={showTelegramToken ? "text" : "password"}
+              value={telegramBotToken}
+              onChange={(e) => setTelegramBotToken(e.target.value)}
+              placeholder="1234567890:ABCdef..."
+              className="w-full bg-background border border-border rounded px-3 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+            />
+            <button onClick={() => setShowTelegramToken(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showTelegramToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="font-mono text-[10px] text-muted-foreground">Create a bot via @BotFather on Telegram and paste the token here.</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-[#25D366] border-b border-border pb-2">WhatsApp via Twilio</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Account SID</label>
+            <input value={twilioAccountSid} onChange={(e) => setTwilioAccountSid(e.target.value)} placeholder="ACxxxxxxxx..."
+              className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Auth Token</label>
+            <div className="relative">
+              <input type={showTwilioToken ? "text" : "password"} value={twilioAuthToken} onChange={(e) => setTwilioAuthToken(e.target.value)} placeholder="your auth token"
+                className="w-full bg-background border border-border rounded px-3 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+              <button onClick={() => setShowTwilioToken(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showTwilioToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">WhatsApp From Number</label>
+          <input value={twilioWhatsappFrom} onChange={(e) => setTwilioWhatsappFrom(e.target.value)} placeholder="+14155238886"
+            className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+          <p className="font-mono text-[10px] text-muted-foreground">The Twilio WhatsApp-enabled number (with + country code). Use the sandbox number for testing.</p>
+        </div>
+      </div>
+
+      <Button onClick={() => save.mutate()} disabled={save.isPending} className="font-mono text-xs uppercase tracking-widest">
+        {save.isPending ? "Saving…" : "Save Chat Settings"}
+      </Button>
+    </div>
+  );
+}
+
 // ── Main Admin Component ──────────────────────────────────────────────────────
 export default function Admin() {
   const { user, isLoading } = useAuth();
@@ -951,6 +1052,9 @@ export default function Admin() {
             </div>
             <div className="border border-border bg-card rounded p-6">
               <OgMetaSection />
+            </div>
+            <div className="border border-border bg-card rounded p-6">
+              <ChatSection />
             </div>
             <div className="border border-border bg-card rounded p-6">
               <SecurityNotifSection />

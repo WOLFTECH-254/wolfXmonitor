@@ -390,6 +390,33 @@ router.put("/admin/settings/og", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Telegram + WhatsApp (Twilio) settings ─────────────────────────────────────
+
+router.get("/admin/settings/chat", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  res.json({
+    telegramBotToken: map.get("telegram_bot_token") ?? "",
+    twilioAccountSid: map.get("twilio_account_sid") ?? "",
+    twilioAuthToken: map.get("twilio_auth_token") ?? "",
+    twilioWhatsappFrom: map.get("twilio_whatsapp_from") ?? "",
+  });
+});
+
+router.put("/admin/settings/chat", requireAdmin, async (req, res) => {
+  const { telegramBotToken, twilioAccountSid, twilioAuthToken, twilioWhatsappFrom } = req.body as {
+    telegramBotToken?: string;
+    twilioAccountSid?: string;
+    twilioAuthToken?: string;
+    twilioWhatsappFrom?: string;
+  };
+  if (telegramBotToken !== undefined) await upsertSetting("telegram_bot_token", telegramBotToken.trim());
+  if (twilioAccountSid !== undefined) await upsertSetting("twilio_account_sid", twilioAccountSid.trim());
+  if (twilioAuthToken !== undefined) await upsertSetting("twilio_auth_token", twilioAuthToken.trim());
+  if (twilioWhatsappFrom !== undefined) await upsertSetting("twilio_whatsapp_from", twilioWhatsappFrom.trim());
+  res.json({ ok: true });
+});
+
 // ── Security notification settings ────────────────────────────────────────────
 
 router.get("/admin/settings/security", requireAdmin, async (_req, res) => {
