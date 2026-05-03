@@ -115,3 +115,61 @@ export function buildRecoveryMessagePlain(monitorName: string, monitorUrl: strin
     `All clear. The wolf continues watching.`,
   ].filter(Boolean).join("\n");
 }
+
+export async function sendDiscordAlert(
+  webhookUrl: string,
+  type: "down" | "recovery" | "test",
+  monitorName: string,
+  monitorUrl: string,
+  extra?: { error?: string | null; responseTimeMs?: number | null }
+): Promise<void> {
+  const isDown = type === "down";
+  const isTest = type === "test";
+
+  const color = isTest ? 0x22c55e : isDown ? 0xe53e3e : 0x22c55e;
+  const emoji = isTest ? "🧪" : isDown ? "🔴" : "✅";
+  const title = isTest
+    ? "wolfXmonitor — Test Alert"
+    : isDown
+    ? "wolfXmonitor — Site Down"
+    : "wolfXmonitor — Site Recovered";
+
+  const descriptionLines: string[] = [];
+  if (isTest) {
+    descriptionLines.push(`**${monitorName}** — Discord is connected!`);
+    descriptionLines.push(`wolfXmonitor alerts are now active on this channel.`);
+  } else if (isDown) {
+    descriptionLines.push(`**${monitorName}** is **DOWN**`);
+    if (extra?.error) descriptionLines.push(`\`Error: ${extra.error}\``);
+    descriptionLines.push(`The wolf is watching — you'll be notified when it recovers.`);
+  } else {
+    descriptionLines.push(`**${monitorName}** is back **ONLINE**`);
+    if (extra?.responseTimeMs) descriptionLines.push(`Response time: \`${extra.responseTimeMs}ms\``);
+    descriptionLines.push(`All clear. The wolf continues watching.`);
+  }
+
+  const payload = {
+    embeds: [
+      {
+        title: `${emoji} ${title}`,
+        description: descriptionLines.join("\n"),
+        color,
+        fields: [
+          { name: "URL", value: monitorUrl, inline: true },
+          { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+        ],
+        footer: { text: "wolfXmonitor · monitor.xwolf.space" },
+      },
+    ],
+  };
+
+  try {
+    await axios.post(webhookUrl, payload, {
+      headers: { "content-type": "application/json" },
+    });
+    logger.info({ webhookUrl: webhookUrl.slice(0, 40) }, "Discord alert sent");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err: msg }, "Failed to send Discord alert");
+  }
+}

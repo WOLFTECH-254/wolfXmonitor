@@ -14,6 +14,7 @@ export const usersTable = pgTable("users", {
   planExpiresAt: timestamp("plan_expires_at"),
   telegramChatId: text("telegram_chat_id"),
   whatsappPhone: text("whatsapp_phone"),
+  discordWebhookUrl: text("discord_webhook_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

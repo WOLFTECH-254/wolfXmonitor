@@ -10,6 +10,7 @@ import { logger } from "../lib/logger";
 import {
   sendTelegramMessage,
   sendWhatsAppMessage,
+  sendDiscordAlert,
   buildDownMessage,
   buildDownMessagePlain,
 } from "../lib/notifier";
@@ -58,6 +59,7 @@ function safeUser(u: typeof usersTable.$inferSelect) {
     plan: u.plan,
     telegramChatId: u.telegramChatId ?? null,
     whatsappPhone: u.whatsappPhone ?? null,
+    discordWebhookUrl: u.discordWebhookUrl ?? null,
   };
 }
 
@@ -171,18 +173,21 @@ router.get("/me/channels", async (req, res) => {
   res.json({
     telegramChatId: user.telegramChatId ?? null,
     whatsappPhone: user.whatsappPhone ?? null,
+    discordWebhookUrl: user.discordWebhookUrl ?? null,
   });
 });
 
 router.put("/me/channels", async (req, res) => {
   if (!req.session.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const { telegramChatId, whatsappPhone } = req.body as {
+  const { telegramChatId, whatsappPhone, discordWebhookUrl } = req.body as {
     telegramChatId?: string;
     whatsappPhone?: string;
+    discordWebhookUrl?: string;
   };
   await db.update(usersTable).set({
     telegramChatId: telegramChatId?.trim() || null,
     whatsappPhone: whatsappPhone?.trim() || null,
+    discordWebhookUrl: discordWebhookUrl?.trim() || null,
   }).where(eq(usersTable.id, req.session.userId));
   logger.info({ userId: req.session.userId }, "Notification channels updated");
   res.json({ ok: true });
@@ -190,7 +195,7 @@ router.put("/me/channels", async (req, res) => {
 
 router.post("/me/channels/test", async (req, res) => {
   if (!req.session.userId) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const { channel } = req.body as { channel?: "telegram" | "whatsapp" };
+  const { channel } = req.body as { channel?: "telegram" | "whatsapp" | "discord" };
   if (!channel) { res.status(400).json({ error: "channel required" }); return; }
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
@@ -204,7 +209,7 @@ router.post("/me/channels/test", async (req, res) => {
         .replace("is DOWN", "test — ✅ Telegram is connected!")
         .replace("The wolf is watching — you'll be notified when it recovers.", "wolfXmonitor alerts are now active on this chat.")
     );
-  } else {
+  } else if (channel === "whatsapp") {
     if (!user.whatsappPhone) { res.status(400).json({ error: "No WhatsApp number saved yet." }); return; }
     await sendWhatsAppMessage(
       user.whatsappPhone,
@@ -212,6 +217,9 @@ router.post("/me/channels/test", async (req, res) => {
         .replace("is DOWN", "test — WhatsApp is connected!")
         .replace("You'll be notified when it recovers.", "wolfXmonitor alerts are now active on this number.")
     );
+  } else {
+    if (!user.discordWebhookUrl) { res.status(400).json({ error: "No Discord webhook URL saved yet." }); return; }
+    await sendDiscordAlert(user.discordWebhookUrl, "test", "test-monitor", "https://example.com");
   }
   res.json({ ok: true });
 });

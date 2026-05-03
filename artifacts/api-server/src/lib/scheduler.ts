@@ -6,6 +6,7 @@ import { sendDownAlert, sendRecoveryAlert } from "./mailer";
 import {
   sendTelegramMessage,
   sendWhatsAppMessage,
+  sendDiscordAlert,
   buildDownMessage,
   buildDownMessagePlain,
   buildRecoveryMessage,
@@ -70,6 +71,9 @@ async function runPing(monitorId: number, url: string): Promise<void> {
               buildDownMessagePlain(monitor.name, url, result.error)
             );
           }
+          if (user.discordWebhookUrl) {
+            await sendDiscordAlert(user.discordWebhookUrl, "down", monitor.name, url, { error: result.error });
+          }
         } else if (justRecovered) {
           await sendRecoveryAlert({
             toEmail: emailTo,
@@ -89,6 +93,9 @@ async function runPing(monitorId: number, url: string): Promise<void> {
               user.whatsappPhone,
               buildRecoveryMessagePlain(monitor.name, url, result.responseTimeMs)
             );
+          }
+          if (user.discordWebhookUrl) {
+            await sendDiscordAlert(user.discordWebhookUrl, "recovery", monitor.name, url, { responseTimeMs: result.responseTimeMs });
           }
         }
       }
