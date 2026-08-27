@@ -238,11 +238,6 @@ export default function Landing() {
       <section className="px-6 pt-32 pb-20 md:pt-40 md:pb-28 max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 border border-border rounded-full px-3 py-1 mb-7">
-              <span className="status-dot up" />
-              <span className="font-mono text-xs text-muted-foreground tracking-wide">All systems operational</span>
-            </div>
-
             <h1 className="font-display text-[clamp(38px,5.5vw,58px)] leading-[1.05] text-foreground">
               Keep your apps <span className="text-primary">alive.</span>
             </h1>

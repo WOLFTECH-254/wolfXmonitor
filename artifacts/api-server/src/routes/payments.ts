@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "node:crypto";
 import axios from "axios";
 import { db, paymentsTable, settingsTable, usersTable, plansTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
@@ -162,6 +163,23 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
 // ── Webhook (server-to-server from Paystack) ────────────────────────────────
 
 router.post("/payments/webhook", async (req, res) => {
+  // Verify this really came from Paystack: HMAC-SHA512 of the raw body,
+  // keyed with our secret key, must match the x-paystack-signature header.
+  const { secretKey } = await getSettings();
+  const signature = req.headers["x-paystack-signature"];
+  const raw = (req as unknown as { rawBody?: Buffer }).rawBody;
+  if (!secretKey || !raw || typeof signature !== "string") {
+    res.sendStatus(401);
+    return;
+  }
+  const expected = crypto.createHmac("sha512", secretKey).update(raw).digest("hex");
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    res.sendStatus(401);
+    return;
+  }
+
   const event = req.body as {
     event?: string;
     data?: {

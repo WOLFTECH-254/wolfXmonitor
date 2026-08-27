@@ -39,7 +39,14 @@ app.use(globalLimiter);
 app.use("/api/auth", authLimiter);
 app.use("/api", apiLimiter);
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
+app.use(
+  express.json({
+    // Keep the raw bytes so webhook handlers can verify HMAC signatures.
+    verify: (req, _res, buf) => {
+      (req as unknown as { rawBody?: Buffer }).rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
