@@ -6,6 +6,7 @@ import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { sendPaymentConfirmEmail } from "../lib/mailer";
 import { recomputeOverLimit } from "../lib/plan-enforcement";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -69,14 +70,19 @@ router.get("/payments/config", requireAuth, async (req, res) => {
 
 // ── Mobile money (M-Pesa STK push) — no inline popup ───────────────────────
 
-/** Normalise a Kenyan MSISDN to Paystack's expected local format (07.. / 01..). */
-function normalizeKePhone(raw: string): string | null {
-  let p = (raw || "").replace(/[\s-]/g, "");
+/**
+ * Reduce any accepted user input to the canonical Kenyan MSISDN 254XXXXXXXXX.
+ * Accepts 0712…, 712…, +254712…, 254712…, with spaces / dashes / parens.
+ */
+function toKeMsisdn(raw: string): string | null {
+  let p = (raw || "").replace(/[^\d+]/g, "");
   if (p.startsWith("+")) p = p.slice(1);
-  if (p.startsWith("254")) p = "0" + p.slice(3);
-  if (p.startsWith("7") || p.startsWith("1")) p = "0" + p;
-  return /^0[17]\d{8}$/.test(p) ? p : null;
+  if (p.startsWith("0")) p = "254" + p.slice(1);
+  if (/^[71]\d{8}$/.test(p)) p = "254" + p;
+  return /^254[17]\d{8}$/.test(p) ? p : null;
 }
+
+const isPhoneFormatError = (msg: string) => /phone|msisdn|number format|invalid number/i.test(msg);
 
 router.post("/payments/charge/mpesa", requireAuth, async (req, res) => {
   const { planSlug, phone } = (req.body ?? {}) as { planSlug?: string; phone?: string };
@@ -85,7 +91,7 @@ router.post("/payments/charge/mpesa", requireAuth, async (req, res) => {
   const settings = await getSettings();
   if (!settings.secretKey) { res.status(503).json({ error: "Payments are not configured yet." }); return; }
 
-  const msisdn = normalizeKePhone(phone ?? "");
+  const msisdn = toKeMsisdn(phone ?? "");
   if (!msisdn) { res.status(400).json({ error: "Enter a valid Safaricom number, e.g. 0712 345 678." }); return; }
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
@@ -111,49 +117,64 @@ router.post("/payments/charge/mpesa", requireAuth, async (req, res) => {
   }
 
   const reference = `wxm_${plan.slug}_${Date.now()}_${userId}`;
+  const local = "0" + msisdn.slice(3);      // 0712345678
+  const bare = msisdn.slice(3);              // 712345678
+  // Paystack's Charge API has been inconsistent about the KE M-Pesa phone
+  // format across accounts — try the common encodings in order.
+  const phoneCandidates = [`+${msisdn}`, msisdn, local, bare];
 
-  try {
-    const { data: charge } = await axios.post(
-      "https://api.paystack.co/charge",
-      {
-        email: user.email,
+  let lastErr = "Unknown error";
+  for (const candidate of phoneCandidates) {
+    try {
+      const { data: charge } = await axios.post(
+        "https://api.paystack.co/charge",
+        {
+          email: user.email,
+          amount: amountMinor,
+          currency,
+          reference,
+          mobile_money: { phone: candidate, provider: "mpesa" },
+          metadata: { userId, planSlug: plan.slug },
+        },
+        { headers: { Authorization: `Bearer ${settings.secretKey}` }, timeout: 20000 },
+      );
+
+      const cd = (charge as { data?: { status?: string; display_text?: string; message?: string } }).data ?? {};
+      const status = cd.status ?? "pending";
+
+      if (status === "failed") {
+        const m = cd.message || "The M-Pesa charge was declined. Try again.";
+        if (isPhoneFormatError(m)) { lastErr = m; continue; } // try the next phone encoding
+        res.status(402).json({ error: m });
+        return;
+      }
+
+      await db.insert(paymentsTable).values({
+        userId,
+        paystackReference: reference,
         amount: amountMinor,
         currency,
+        status: "pending",
+        plan: plan.slug,
+      });
+
+      res.json({
         reference,
-        mobile_money: { phone: msisdn, provider: "mpesa" },
-        metadata: { userId, planSlug: plan.slug },
-      },
-      { headers: { Authorization: `Bearer ${settings.secretKey}` }, timeout: 20000 },
-    );
-
-    const cd = (charge as { data?: { status?: string; display_text?: string; message?: string } }).data ?? {};
-    const status = cd.status ?? "pending";
-
-    if (status === "failed") {
-      res.status(402).json({ error: cd.message || "The M-Pesa charge was declined. Try again." });
+        status,
+        displayText: cd.display_text || "Enter your M-Pesa PIN on the prompt sent to your phone.",
+      });
       return;
+    } catch (err: unknown) {
+      lastErr =
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+        (err instanceof Error ? err.message : String(err));
+      // Only keep trying other formats if this looks like a format rejection.
+      if (!isPhoneFormatError(lastErr)) break;
     }
-
-    await db.insert(paymentsTable).values({
-      userId,
-      paystackReference: reference,
-      amount: amountMinor,
-      currency,
-      status: "pending",
-      plan: plan.slug,
-    });
-
-    res.json({
-      reference,
-      status,
-      displayText: cd.display_text || "Enter your M-Pesa PIN on the prompt sent to your phone.",
-    });
-  } catch (err: unknown) {
-    const apiMsg =
-      (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-      (err instanceof Error ? err.message : String(err));
-    res.status(502).json({ error: `Could not start M-Pesa payment: ${apiMsg}` });
   }
+
+  logger.warn({ userId, plan: plan.slug, msisdn, lastErr }, "M-Pesa charge could not be started");
+  res.status(502).json({ error: `Could not start M-Pesa payment: ${lastErr}` });
 });
 
 // ── Verify after Paystack inline popup ──────────────────────────────────────
