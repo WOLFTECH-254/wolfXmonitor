@@ -5,6 +5,8 @@ import { Link } from "wouter";
 import { CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Footer } from "@/components/footer";
+import { Layout } from "@/components/layout";
+import { useAuth } from "@/hooks/use-auth";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -29,30 +31,21 @@ export default function StatusPage() {
     refetchInterval: 30000,
   });
 
+  const { user } = useAuth();
+
   const allUp = data && data.down === 0 && data.total > 0;
   const hasDown = data && data.down > 0;
 
-  return (
-    <>
-      <Helmet>
-        <title>System Status — GuardiX</title>
-        <meta name="description" content="Live status of all monitored services. Check uptime, response times, and recent incidents." />
-        <meta property="og:title" content="System Status — GuardiX" />
-      </Helmet>
-    <div className="min-h-screen bg-background text-foreground dark">
-      <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
-            <BrandMark className="w-4 h-4 text-primary" />
-          </div>
-          <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
-        </Link>
-        <a href="/dashboard" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
-          Back to site
-        </a>
-      </nav>
+  const head = (
+    <Helmet>
+      <title>System Status — GuardiX</title>
+      <meta name="description" content="Live status of all monitored services. Check uptime, response times, and recent incidents." />
+      <meta property="og:title" content="System Status — GuardiX" />
+    </Helmet>
+  );
 
-      <div className="max-w-3xl mx-auto px-6 py-16">
+  const inner = (
+    <div className="max-w-3xl mx-auto">
         {/* Global status banner */}
         <div className={`rounded border p-6 mb-12 flex items-center gap-4 ${
           isLoading ? "border-border bg-card"
@@ -140,10 +133,38 @@ export default function StatusPage() {
             </Link>
           ))}
         </div>
-
-      </div>
     </div>
-    <Footer />
+  );
+
+  // Logged-in users see it inside the app shell; visitors get the standalone
+  // public status page (it stays shareable).
+  if (user) {
+    return (
+      <Layout>
+        {head}
+        {inner}
+      </Layout>
+    );
+  }
+
+  return (
+    <>
+      {head}
+      <div className="min-h-screen bg-background text-foreground dark">
+        <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
+              <BrandMark className="w-4 h-4 text-primary" />
+            </div>
+            <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
+          </Link>
+          <Link href="/signin" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
+            Sign in
+          </Link>
+        </nav>
+        <div className="px-6 py-16">{inner}</div>
+      </div>
+      <Footer />
     </>
   );
 }

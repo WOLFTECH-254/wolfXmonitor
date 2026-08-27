@@ -369,6 +369,101 @@ function BillingSection() {
   );
 }
 
+// ── Social Login (Google / GitHub OAuth) ─────────────────────────────────────
+interface OAuthSettings {
+  googleClientId: string; googleClientSecretSet: boolean; googleClientSecretMasked: string;
+  githubClientId: string; githubClientSecretSet: boolean; githubClientSecretMasked: string;
+}
+
+function OAuthSection() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [gId, setGId] = useState("");
+  const [gSecret, setGSecret] = useState("");
+  const [hId, setHId] = useState("");
+  const [hSecret, setHSecret] = useState("");
+
+  const { data } = useQuery<OAuthSettings>({
+    queryKey: ["admin-oauth-settings"],
+    queryFn: () => apiFetch("/api/admin/settings/oauth"),
+  });
+
+  useEffect(() => {
+    if (data) {
+      setGId(data.googleClientId);
+      setHId(data.githubClientId);
+      if (data.googleClientSecretSet && !gSecret) setGSecret(data.googleClientSecretMasked);
+      if (data.githubClientSecretSet && !hSecret) setHSecret(data.githubClientSecretMasked);
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => apiFetch("/api/admin/settings/oauth", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ googleClientId: gId, googleClientSecret: gSecret, githubClientId: hId, githubClientSecret: hSecret }),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-oauth-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["oauth-providers"] });
+      toast({ title: "Social login settings saved" });
+    },
+    onError: () => toast({ variant: "destructive", title: "Failed to save" }),
+  });
+
+  const field = "w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors";
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">Social Login</h3>
+      <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+        Add Google / GitHub sign-in. Register an OAuth app with each provider and set its
+        redirect / callback URL to the value shown below.
+      </p>
+
+      {/* Google */}
+      <div className="border border-border rounded p-4 space-y-3">
+        <p className="font-mono text-xs uppercase tracking-widest text-foreground">Google</p>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Client ID</label>
+          <input type="text" value={gId} onChange={(e) => setGId(e.target.value)} placeholder="…apps.googleusercontent.com" className={field} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Client Secret</label>
+          <input type="text" value={gSecret} onChange={(e) => setGSecret(e.target.value)}
+            onFocus={() => { if (gSecret === data?.googleClientSecretMasked) setGSecret(""); }}
+            placeholder="GOCSPX-…" className={field} />
+        </div>
+        <p className="font-mono text-[10px] text-muted-foreground break-all">
+          Authorized redirect URI: <span className="text-primary">{origin}/api/auth/oauth/google/callback</span>
+        </p>
+      </div>
+
+      {/* GitHub */}
+      <div className="border border-border rounded p-4 space-y-3">
+        <p className="font-mono text-xs uppercase tracking-widest text-foreground">GitHub</p>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Client ID</label>
+          <input type="text" value={hId} onChange={(e) => setHId(e.target.value)} placeholder="Iv1.…" className={field} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Client Secret</label>
+          <input type="text" value={hSecret} onChange={(e) => setHSecret(e.target.value)}
+            onFocus={() => { if (hSecret === data?.githubClientSecretMasked) setHSecret(""); }}
+            placeholder="ghp_…" className={field} />
+        </div>
+        <p className="font-mono text-[10px] text-muted-foreground break-all">
+          Authorization callback URL: <span className="text-primary">{origin}/api/auth/oauth/github/callback</span>
+        </p>
+      </div>
+
+      <Button onClick={() => save.mutate()} disabled={save.isPending} className="font-mono text-xs uppercase tracking-widest">
+        {save.isPending ? "Saving…" : "Save Social Login"}
+      </Button>
+    </div>
+  );
+}
+
 // ── Footer / Site Settings ────────────────────────────────────────────────────
 interface SiteSettings { twitterUrl: string; instagramUrl: string; facebookUrl: string; linkedinUrl: string; youtubeUrl: string; privacyUrl: string; termsUrl: string; tagline: string; }
 
@@ -1221,6 +1316,9 @@ export default function Admin() {
             </div>
             <div className="border border-border bg-card rounded p-6">
               <BillingSection />
+            </div>
+            <div className="border border-border bg-card rounded p-6">
+              <OAuthSection />
             </div>
             <div className="border border-border bg-card rounded p-6">
               <FooterSection />

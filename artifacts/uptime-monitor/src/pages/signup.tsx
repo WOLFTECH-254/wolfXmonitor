@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, Eye, EyeOff, Globe, Clock, BarChart2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { SocialAuthButtons } from "@/components/social-auth-buttons";
 
 const COUNTRIES = [
   { code: "NG", name: "Nigeria" }, { code: "GH", name: "Ghana" },
@@ -119,13 +120,15 @@ export default function SignUp() {
               </h2>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <div className="border border-destructive/40 bg-destructive/10 rounded px-4 py-3 font-mono text-xs text-destructive">
-                  {error}
-                </div>
-              )}
+            {error && (
+              <div className="border border-destructive/40 bg-destructive/10 rounded px-4 py-3 font-mono text-xs text-destructive mb-5">
+                {error}
+              </div>
+            )}
 
+            <SocialAuthButtons />
+
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Name</label>
                 <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)}

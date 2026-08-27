@@ -11,6 +11,8 @@ import { ipBlockMiddleware } from "./middlewares/ip-block";
 declare module "express-session" {
   interface SessionData {
     userId?: number;
+    oauthState?: string;
+    oauthProvider?: string;
   }
 }
 

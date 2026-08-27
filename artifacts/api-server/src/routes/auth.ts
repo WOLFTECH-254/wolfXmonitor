@@ -58,6 +58,8 @@ function safeUser(u: typeof usersTable.$inferSelect) {
     isAdmin: u.isAdmin,
     country: u.country,
     plan: u.plan,
+    authProvider: u.oauthProvider ?? null,
+    hasPassword: !!u.passwordHash,
     telegramChatId: u.telegramChatId ?? null,
     whatsappPhone: u.whatsappPhone ?? null,
     discordWebhookUrl: u.discordWebhookUrl ?? null,
@@ -113,6 +115,13 @@ router.post("/auth/login", async (req, res) => {
 
   const ua = (req.headers["user-agent"] as string | undefined) ?? null;
 
+  if (user && !user.passwordHash) {
+    res.status(401).json({
+      error: `This account uses ${user.oauthProvider ?? "social"} sign-in. Continue with ${user.oauthProvider ?? "your provider"}, or set a password in your profile.`,
+    });
+    return;
+  }
+
   if (!user) {
     recordFailure(ip);
     recordSecurityEvent({
@@ -127,7 +136,9 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  const valid = user.passwordHash
+    ? await bcrypt.compare(password, user.passwordHash)
+    : false;
   if (!valid) {
     recordFailure(ip);
     recordSecurityEvent({
@@ -199,8 +210,8 @@ router.put("/me/password", async (req, res) => {
   const { currentPassword, newPassword } = req.body as {
     currentPassword?: string; newPassword?: string;
   };
-  if (!currentPassword || !newPassword) {
-    res.status(400).json({ error: "Current password and new password are required" });
+  if (!newPassword) {
+    res.status(400).json({ error: "A new password is required" });
     return;
   }
   if (newPassword.length < 8) {
@@ -209,10 +220,18 @@ router.put("/me/password", async (req, res) => {
   }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
   if (!user) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
-  if (!valid) {
-    res.status(400).json({ error: "Current password is incorrect" });
-    return;
+  // Social-login accounts have no password yet — let them set one without a
+  // current password. Password accounts must confirm the current one.
+  if (user.passwordHash) {
+    if (!currentPassword) {
+      res.status(400).json({ error: "Your current password is required" });
+      return;
+    }
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      res.status(400).json({ error: "Current password is incorrect" });
+      return;
+    }
   }
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, req.session.userId));

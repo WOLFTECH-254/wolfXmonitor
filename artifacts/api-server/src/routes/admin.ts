@@ -277,6 +277,39 @@ router.put("/admin/settings/billing", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Social login (Google / GitHub OAuth) ───────────────────────────────────
+
+router.get("/admin/settings/oauth", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(settingsTable);
+  const map = new Map(rows.map((r) => [r.key, r.value]));
+  const mask = (v?: string) => (v && v.length > 6 ? `${"•".repeat(v.length - 4)}${v.slice(-4)}` : v ? "••••" : "");
+  res.json({
+    googleClientId: map.get("oauth_google_client_id") ?? "",
+    googleClientSecretSet: !!map.get("oauth_google_client_secret"),
+    googleClientSecretMasked: mask(map.get("oauth_google_client_secret")),
+    githubClientId: map.get("oauth_github_client_id") ?? "",
+    githubClientSecretSet: !!map.get("oauth_github_client_secret"),
+    githubClientSecretMasked: mask(map.get("oauth_github_client_secret")),
+  });
+});
+
+router.put("/admin/settings/oauth", requireAdmin, async (req, res) => {
+  const b = req.body as {
+    googleClientId?: string; googleClientSecret?: string;
+    githubClientId?: string; githubClientSecret?: string;
+  };
+  // Empty string clears the id; a secret with "•" means "unchanged".
+  if (b.googleClientId !== undefined) await upsertSetting("oauth_google_client_id", b.googleClientId.trim());
+  if (b.githubClientId !== undefined) await upsertSetting("oauth_github_client_id", b.githubClientId.trim());
+  if (b.googleClientSecret?.trim() && !b.googleClientSecret.includes("•")) {
+    await upsertSetting("oauth_google_client_secret", b.googleClientSecret.trim());
+  }
+  if (b.githubClientSecret?.trim() && !b.githubClientSecret.includes("•")) {
+    await upsertSetting("oauth_github_client_secret", b.githubClientSecret.trim());
+  }
+  res.json({ ok: true });
+});
+
 // ── Plan management ─────────────────────────────────────────────────────────
 
 router.patch("/admin/users/:id/plan", requireAdmin, async (req, res) => {
