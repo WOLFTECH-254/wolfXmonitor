@@ -54,10 +54,6 @@ export default function SignIn() {
         {/* Left — brand panel */}
         <div className="hidden lg:flex flex-col justify-center px-16 w-[52%] relative border-r border-border">
           <div className="relative z-10 max-w-lg">
-            <div className="inline-flex items-center gap-2 border border-border rounded-full px-3 py-1 mb-10">
-              <span className="status-dot up" />
-              <span className="font-mono text-xs text-muted-foreground tracking-wide">All systems operational</span>
-            </div>
             <h1 className="font-display leading-[1.05] mb-6">
               <span className="block text-[clamp(44px,5.5vw,84px)] text-foreground">Welcome</span>
               <span className="block text-[clamp(44px,5.5vw,84px)] text-primary">back.</span>
