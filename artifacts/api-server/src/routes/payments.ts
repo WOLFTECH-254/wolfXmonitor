@@ -67,6 +67,95 @@ router.get("/payments/config", requireAuth, async (req, res) => {
   });
 });
 
+// ── Mobile money (M-Pesa STK push) — no inline popup ───────────────────────
+
+/** Normalise a Kenyan MSISDN to Paystack's expected local format (07.. / 01..). */
+function normalizeKePhone(raw: string): string | null {
+  let p = (raw || "").replace(/[\s-]/g, "");
+  if (p.startsWith("+")) p = p.slice(1);
+  if (p.startsWith("254")) p = "0" + p.slice(3);
+  if (p.startsWith("7") || p.startsWith("1")) p = "0" + p;
+  return /^0[17]\d{8}$/.test(p) ? p : null;
+}
+
+router.post("/payments/charge/mpesa", requireAuth, async (req, res) => {
+  const { planSlug, phone } = (req.body ?? {}) as { planSlug?: string; phone?: string };
+  const userId = req.session.userId!;
+
+  const settings = await getSettings();
+  if (!settings.secretKey) { res.status(503).json({ error: "Payments are not configured yet." }); return; }
+
+  const msisdn = normalizeKePhone(phone ?? "");
+  if (!msisdn) { res.status(400).json({ error: "Enter a valid Safaricom number, e.g. 0712 345 678." }); return; }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.slug, planSlug ?? ""));
+  if (!plan || !plan.isActive) { res.status(400).json({ error: "Unknown plan" }); return; }
+  if (plan.isFree) { res.status(400).json({ error: "The free plan needs no payment." }); return; }
+
+  // Amount is computed server-side — never trust the browser.
+  const currency = settings.merchantCurrency;
+  let rate = 1;
+  if (currency !== "USD") {
+    const rates = await getExchangeRates();
+    rate = rates[currency] ?? 1;
+  }
+  const priceUsd = Number(plan.priceUsd);
+  const major = currency === "USD" ? priceUsd : Math.round(priceUsd * rate);
+  const amountMinor = Math.round(major * 100);
+  if (!Number.isFinite(amountMinor) || amountMinor <= 0) {
+    res.status(400).json({ error: "This plan has no price set. Contact support." });
+    return;
+  }
+
+  const reference = `wxm_${plan.slug}_${Date.now()}_${userId}`;
+
+  try {
+    const { data: charge } = await axios.post(
+      "https://api.paystack.co/charge",
+      {
+        email: user.email,
+        amount: amountMinor,
+        currency,
+        reference,
+        mobile_money: { phone: msisdn, provider: "mpesa" },
+        metadata: { userId, planSlug: plan.slug },
+      },
+      { headers: { Authorization: `Bearer ${settings.secretKey}` }, timeout: 20000 },
+    );
+
+    const cd = (charge as { data?: { status?: string; display_text?: string; message?: string } }).data ?? {};
+    const status = cd.status ?? "pending";
+
+    if (status === "failed") {
+      res.status(402).json({ error: cd.message || "The M-Pesa charge was declined. Try again." });
+      return;
+    }
+
+    await db.insert(paymentsTable).values({
+      userId,
+      paystackReference: reference,
+      amount: amountMinor,
+      currency,
+      status: "pending",
+      plan: plan.slug,
+    });
+
+    res.json({
+      reference,
+      status,
+      displayText: cd.display_text || "Enter your M-Pesa PIN on the prompt sent to your phone.",
+    });
+  } catch (err: unknown) {
+    const apiMsg =
+      (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+      (err instanceof Error ? err.message : String(err));
+    res.status(502).json({ error: `Could not start M-Pesa payment: ${apiMsg}` });
+  }
+});
+
 // ── Verify after Paystack inline popup ──────────────────────────────────────
 
 router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
