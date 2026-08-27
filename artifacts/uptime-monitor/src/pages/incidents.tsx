@@ -93,7 +93,7 @@ export default function IncidentsPage() {
   return (
     <Layout>
       <Helmet>
-        <title>Incidents — wolfXmonitor</title>
+        <title>Incidents — GuardiX</title>
         <meta name="description" content="Browse your downtime history and incident log across all monitors." />
       </Helmet>
       <div className="space-y-6">
@@ -155,12 +155,12 @@ export default function IncidentsPage() {
                     >
                       <td className="px-4 py-3">
                         {isResolved ? (
-                          <span className="inline-flex items-center gap-1.5 font-mono text-xs text-emerald-400">
+                          <span className="inline-flex items-center gap-1.5 font-mono text-xs text-primary">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Resolved
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 font-mono text-xs text-red-400 animate-pulse">
+                          <span className="inline-flex items-center gap-1.5 font-mono text-xs text-destructive">
                             <AlertTriangle className="w-3.5 h-3.5" />
                             Ongoing
                           </span>
@@ -186,7 +186,7 @@ export default function IncidentsPage() {
                             {formatDatetime(incident.resolved_at!)}
                           </span>
                         ) : (
-                          <span className="font-mono text-xs text-red-400/70">—</span>
+                          <span className="font-mono text-xs text-muted-foreground">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">

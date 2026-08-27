@@ -260,7 +260,7 @@ router.post("/me/channels/test", async (req, res) => {
       user.telegramChatId,
       buildDownMessage("test-monitor", "https://example.com", null)
         .replace("is DOWN", "test — ✅ Telegram is connected!")
-        .replace("The wolf is watching — you'll be notified when it recovers.", "wolfXmonitor alerts are now active on this chat.")
+        .replace("GuardiX is watching — you'll be notified when it recovers.", "GuardiX alerts are now active on this chat.")
     );
   } else if (channel === "whatsapp") {
     if (!user.whatsappPhone) { res.status(400).json({ error: "No WhatsApp number saved yet." }); return; }
@@ -268,7 +268,7 @@ router.post("/me/channels/test", async (req, res) => {
       user.whatsappPhone,
       buildDownMessagePlain("test-monitor", "https://example.com", null)
         .replace("is DOWN", "test — WhatsApp is connected!")
-        .replace("You'll be notified when it recovers.", "wolfXmonitor alerts are now active on this number.")
+        .replace("You'll be notified when it recovers.", "GuardiX alerts are now active on this number.")
     );
   } else {
     if (!user.discordWebhookUrl) { res.status(400).json({ error: "No Discord webhook URL saved yet." }); return; }

@@ -226,7 +226,7 @@ router.get("/admin/settings/email", requireAdmin, async (_req, res) => {
     brevoApiKeySet: rawKey.length > 0,
     brevoApiKeyMasked: maskedKey,
     senderEmail: map.get("brevo_sender_email") ?? process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space",
-    senderName: map.get("brevo_sender_name") ?? process.env.BREVO_SENDER_NAME ?? "wolfXmonitor",
+    senderName: map.get("brevo_sender_name") ?? process.env.BREVO_SENDER_NAME ?? "GuardiX",
   });
 });
 
@@ -361,7 +361,7 @@ router.get("/settings/og", async (_req, res) => {
   const rows = await db.select().from(settingsTable);
   const map = new Map(rows.map((r) => [r.key, r.value]));
   res.json({
-    ogTitle:       map.get("og_title")       ?? "wolfXmonitor — Know When Your Sites Go Down",
+    ogTitle:       map.get("og_title")       ?? "GuardiX — Know When Your Sites Go Down",
     ogDescription: map.get("og_description") ?? "Real-time uptime monitoring with instant alerts. Free & Pro plans.",
     ogImage:       map.get("og_image")       ?? "",
     ogUrl:         map.get("og_url")         ?? "https://monitor.xwolf.space",
@@ -372,7 +372,7 @@ router.get("/admin/settings/og", requireAdmin, async (_req, res) => {
   const rows = await db.select().from(settingsTable);
   const map = new Map(rows.map((r) => [r.key, r.value]));
   res.json({
-    ogTitle:       map.get("og_title")       ?? "wolfXmonitor — Know When Your Sites Go Down",
+    ogTitle:       map.get("og_title")       ?? "GuardiX — Know When Your Sites Go Down",
     ogDescription: map.get("og_description") ?? "Real-time uptime monitoring with instant alerts. Free & Pro plans.",
     ogImage:       map.get("og_image")       ?? "",
     ogUrl:         map.get("og_url")         ?? "https://monitor.xwolf.space",
@@ -443,7 +443,7 @@ router.post("/admin/settings/email/test", requireAdmin, async (req, res) => {
 
   const apiKey = map.get("brevo_api_key") ?? process.env.BREVO_API_KEY ?? "";
   const senderEmail = map.get("brevo_sender_email") ?? process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space";
-  const senderName = map.get("brevo_sender_name") ?? process.env.BREVO_SENDER_NAME ?? "wolfXmonitor";
+  const senderName = map.get("brevo_sender_name") ?? process.env.BREVO_SENDER_NAME ?? "GuardiX";
 
   if (!apiKey) {
     res.status(400).json({ error: "No Brevo API key configured." });
@@ -468,9 +468,9 @@ router.post("/admin/settings/email/test", requireAdmin, async (req, res) => {
       {
         sender: { name: senderName, email: senderEmail },
         to: [{ email: adminUser.email, name: adminUser.name }],
-        subject: "wolfXmonitor — email test successful",
+        subject: "GuardiX — email test successful",
         htmlContent: `<div style="font-family:'Courier New',monospace;background:#080e0a;color:#d1ffd6;padding:32px;border-radius:8px;max-width:480px;">
-          <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;">wolf<span style="color:#22c55e">X</span>monitor</div>
+          <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;">Guardi<span style="color:#22c55e">X</span></div>
           <div style="font-size:10px;color:#4b7a55;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;border-bottom:1px solid #1a3a22;padding-bottom:12px;">Email Config Test</div>
           <div style="background:#0a1a0e;border:1px solid #22c55e55;border-radius:6px;padding:20px;margin-bottom:20px;">
             <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:8px;">✓ Connection verified</div>

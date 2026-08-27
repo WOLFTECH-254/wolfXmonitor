@@ -68,7 +68,7 @@ export function Footer() {
                 <Zap className="w-4 h-4 text-primary" />
               </div>
               <span className="font-display text-xl text-foreground">
-                wolf<span className="text-primary">X</span>monitor
+                Guardi<span className="text-primary">X</span>
               </span>
             </Link>
             <p className="font-mono text-[11px] text-muted-foreground leading-relaxed max-w-[200px]">
@@ -179,11 +179,11 @@ export function Footer() {
         {/* Divider */}
         <div className="mt-14 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-widest">
-            © {year} wolfXmonitor · All rights reserved.
+            © {year} GuardiX · All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/50">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary" />
               All systems monitored
             </div>
             <p className="font-mono text-[10px] text-muted-foreground/40 tracking-wider">

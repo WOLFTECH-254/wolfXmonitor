@@ -58,7 +58,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <Helmet>
-        <title>Dashboard — wolfXmonitor</title>
+        <title>Dashboard — GuardiX</title>
         <meta name="description" content="Your uptime monitoring dashboard. View live status, response times, and incidents." />
       </Helmet>
       <div className="space-y-8">

@@ -78,7 +78,7 @@ export default function Profile() {
   return (
     <Layout>
       <Helmet>
-        <title>Profile — wolfXmonitor</title>
+        <title>Profile — GuardiX</title>
       </Helmet>
 
       <div className="max-w-2xl space-y-8">
@@ -239,7 +239,7 @@ export default function Profile() {
         {/* Danger zone — account info */}
         <div className="bg-muted/20 border border-border rounded p-4 font-mono text-[11px] text-muted-foreground">
           Account created on{" "}
-          <span className="text-foreground">wolfXmonitor</span>.{" "}
+          <span className="text-foreground">GuardiX</span>.{" "}
           {user?.isAdmin && (
             <span className="text-primary">You are the platform admin.</span>
           )}{" "}

@@ -149,7 +149,7 @@ export default function MonitorDetail() {
   if (isLoadingMonitor || !monitor) {
     return (
       <Layout>
-        <Helmet><title>Monitor — wolfXmonitor</title></Helmet>
+        <Helmet><title>Monitor — GuardiX</title></Helmet>
         <div className="space-y-6">
           <Skeleton className="h-10 w-64" />
           <div className="grid grid-cols-3 gap-3">
@@ -191,7 +191,7 @@ export default function MonitorDetail() {
   return (
     <Layout>
       <Helmet>
-        <title>{monitor.url} — wolfXmonitor</title>
+        <title>{monitor.url} — GuardiX</title>
         <meta name="description" content={`Live uptime monitoring for ${monitor.url}. Track response times, incidents, and SLA.`} />
         <meta name="robots" content="noindex" />
       </Helmet>

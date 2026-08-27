@@ -257,7 +257,7 @@ function EmailSection() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Sender Name</label>
-            <input type="text" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="wolfXmonitor"
+            <input type="text" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="GuardiX"
               className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
           </div>
           <div className="space-y-1.5">
@@ -611,7 +611,7 @@ function OgMetaSection() {
       <div className="space-y-3">
         <div className="space-y-1.5">
           <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">OG Title</label>
-          <input type="text" value={ogTitle} onChange={(e) => setOgTitle(e.target.value)} placeholder="wolfXmonitor — Know When Your Sites Go Down"
+          <input type="text" value={ogTitle} onChange={(e) => setOgTitle(e.target.value)} placeholder="GuardiX — Know When Your Sites Go Down"
             className="w-full bg-background border border-border rounded px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
         </div>
         <div className="space-y-1.5">
@@ -851,7 +851,7 @@ export default function Admin() {
   return (
     <Layout>
       <Helmet>
-        <title>Admin Panel — wolfXmonitor</title>
+        <title>Admin Panel — GuardiX</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="space-y-8">
@@ -869,7 +869,7 @@ export default function Admin() {
             <button key={id} onClick={() => setTab(id)}
               className={`relative flex items-center gap-2 font-mono text-xs uppercase tracking-widest px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${tab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"} ${alert ? "text-yellow-500" : ""}`}>
               <Icon className="w-3.5 h-3.5" />{label}
-              {alert && <span className="absolute top-2 right-1.5 w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />}
+              {alert && <span className="absolute top-2 right-1.5 w-1.5 h-1.5 rounded-full bg-yellow-500" />}
             </button>
           ))}
         </div>

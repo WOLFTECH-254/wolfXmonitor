@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -37,50 +37,48 @@
   --font-mono: var(--app-font-mono);
   --font-display: var(--app-font-display);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
 :root {
-  /* Dark background with subtle green tint — not pure black */
-  --background: 130 12% 4%;
-  --foreground: 130 8% 94%;
+  /* Near-neutral dark with a faint green tint. Green is an accent only. */
+  --background: 150 6% 6%;
+  --foreground: 150 5% 92%;
 
-  /* Borders carry the green tint */
-  --border: 130 14% 11%;
+  --border: 150 5% 15%;
 
-  /* Cards have a slightly lighter green-tinted dark */
-  --card: 130 10% 7%;
-  --card-foreground: 130 8% 94%;
+  --card: 150 5% 9%;
+  --card-foreground: 150 5% 92%;
 
-  /* Primary green — vivid but not blinding */
-  --primary: 130 82% 34%;
-  --primary-foreground: 130 100% 4%;
+  /* Calmer green — used sparingly for accents, links, and "up" status */
+  --primary: 145 48% 44%;
+  --primary-foreground: 150 25% 7%;
 
-  --secondary: 130 10% 12%;
-  --secondary-foreground: 130 12% 78%;
+  --secondary: 150 4% 14%;
+  --secondary-foreground: 150 5% 80%;
 
-  --muted: 130 10% 10%;
-  --muted-foreground: 130 8% 48%;
+  --muted: 150 4% 12%;
+  --muted-foreground: 150 4% 54%;
 
-  --accent: 130 25% 9%;
-  --accent-foreground: 130 80% 40%;
+  --accent: 150 5% 13%;
+  --accent-foreground: 145 40% 55%;
 
-  --destructive: 0 65% 46%;
+  --destructive: 0 55% 52%;
   --destructive-foreground: 0 0% 98%;
 
-  --input: 130 12% 11%;
-  --ring: 130 80% 34%;
+  --input: 150 5% 14%;
+  --ring: 145 35% 40%;
 
-  --chart-1: 130 80% 34%;
-  --chart-2: 0 65% 46%;
+  --chart-1: 145 48% 44%;
+  --chart-2: 0 55% 52%;
 
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-mono: 'Space Mono', monospace;
-  --app-font-display: 'Barlow Condensed', sans-serif;
-  --radius: 0.2rem;
+  --app-font-sans: 'Inter', system-ui, sans-serif;
+  --app-font-mono: 'Space Mono', ui-monospace, monospace;
+  --app-font-display: 'Inter', system-ui, sans-serif;
+  --radius: 0.375rem;
 }
 
 @layer base {
@@ -93,16 +91,17 @@
   }
 }
 
+/* Display type — plain Inter, tighter tracking, no effects */
 .font-display {
   font-family: var(--app-font-display);
-  letter-spacing: 0.03em;
-  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-weight: 650;
 }
 
-/* Status dots — toned down glow */
+/* Status dots — flat, no glow, no animation */
 .status-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
@@ -110,42 +109,33 @@
 
 .status-dot.up {
   background-color: hsl(var(--primary));
-  box-shadow: 0 0 6px hsl(var(--primary) / 0.5);
-  animation: pulse-up 2.5s ease-in-out infinite;
 }
 
 .status-dot.down {
   background-color: hsl(var(--destructive));
-  box-shadow: 0 0 5px hsl(var(--destructive) / 0.4);
 }
 
 .status-dot.unknown {
   background-color: hsl(var(--muted-foreground));
 }
 
-@keyframes pulse-up {
-  0%, 100% { opacity: 0.7; box-shadow: 0 0 4px hsl(var(--primary) / 0.4); }
-  50%       { opacity: 1;   box-shadow: 0 0 10px hsl(var(--primary) / 0.65); }
-}
-
-/* Restrained glow — only on key hero text */
+/* Kept for backwards compatibility — no glow anymore */
 .glow-text {
-  text-shadow: 0 0 30px hsl(var(--primary) / 0.35), 0 0 80px hsl(var(--primary) / 0.12);
+  text-shadow: none;
 }
 
-/* Grid — green-tinted lines instead of white */
+/* Faint neutral grid */
 .grid-bg {
   background-image:
-    linear-gradient(hsl(130 40% 50% / 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(130 40% 50% / 0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(hsl(150 8% 50% / 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(150 8% 50% / 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
-/* Card hover — subtle, not bright */
+/* Card hover — border only, no shadow */
 .card-hover {
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.15s ease;
 }
 .card-hover:hover {
-  border-color: hsl(var(--primary) / 0.28);
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.04);
+  border-color: hsl(var(--border));
 }

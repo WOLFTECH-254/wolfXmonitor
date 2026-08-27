@@ -60,7 +60,7 @@ export default function MonitorNew() {
   return (
     <Layout>
       <Helmet>
-        <title>New Monitor — wolfXmonitor</title>
+        <title>New Monitor — GuardiX</title>
         <meta name="description" content="Add a new URL to monitor. Get alerted the moment it goes down." />
       </Helmet>
       <div className="max-w-2xl mx-auto space-y-8">

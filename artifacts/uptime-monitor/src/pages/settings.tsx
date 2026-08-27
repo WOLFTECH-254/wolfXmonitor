@@ -108,7 +108,7 @@ export default function Settings() {
   return (
     <Layout>
       <Helmet>
-        <title>Integrations & API — wolfXmonitor</title>
+        <title>Integrations & API — GuardiX</title>
       </Helmet>
 
       <div className="max-w-5xl space-y-8">
@@ -161,7 +161,7 @@ export default function Settings() {
                   To get your Chat ID: open Telegram, search for{" "}
                   <span className="text-foreground font-semibold">@userinfobot</span> and send it{" "}
                   <span className="text-foreground">/start</span>. It will reply with your numeric ID.
-                  Then message the wolfXmonitor bot to activate alerts.
+                  Then message the GuardiX bot to activate alerts.
                 </div>
               </div>
 

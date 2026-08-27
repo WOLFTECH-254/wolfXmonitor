@@ -27,19 +27,19 @@ export default function Privacy() {
   return (
     <div className="min-h-screen bg-background text-foreground dark">
       <Helmet>
-        <title>Privacy Policy — wolfXmonitor</title>
-        <meta name="description" content="Privacy Policy for wolfXmonitor — what data we collect, how we use it, and your rights." />
+        <title>Privacy Policy — GuardiX</title>
+        <meta name="description" content="Privacy Policy for GuardiX — what data we collect, how we use it, and your rights." />
       </Helmet>
 
       {/* Top bar */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div className="max-w-3xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
               <Zap className="w-3.5 h-3.5 text-primary" />
             </div>
             <span className="font-display text-lg tracking-wide">
-              wolf<span className="text-primary">X</span>monitor
+              Guardi<span className="text-primary">X</span>
             </span>
             <span className="hidden sm:block font-mono text-xs text-muted-foreground ml-1">/ privacy</span>
           </Link>
@@ -60,7 +60,7 @@ export default function Privacy() {
         </div>
 
         <P>
-          wolfXmonitor ("we", "the platform") is operated by WOLF TECH. This policy explains what data
+          GuardiX ("we", "the platform") is operated by WOLF TECH. This policy explains what data
           we collect when you use <strong className="text-foreground">monitor.xwolf.space</strong>, how
           we use it, and your rights over it. We collect only what is necessary to run the service.
         </P>
@@ -123,14 +123,14 @@ export default function Privacy() {
 
         <H2>7. Children</H2>
         <P>
-          wolfXmonitor is not directed at children under 13. We do not knowingly collect data from anyone
+          GuardiX is not directed at children under 13. We do not knowingly collect data from anyone
           under 13. If you believe we have done so inadvertently, contact us and we will delete it promptly.
         </P>
 
         <H2>8. Changes to This Policy</H2>
         <P>
           We may update this policy as the service evolves. The effective date at the top of this page
-          will be updated when changes are made. Continued use of wolfXmonitor after changes are posted
+          will be updated when changes are made. Continued use of GuardiX after changes are posted
           constitutes acceptance of the updated policy.
         </P>
 
@@ -141,7 +141,7 @@ export default function Privacy() {
         </P>
 
         <div className="mt-16 pt-8 border-t border-border flex items-center justify-between">
-          <span className="font-mono text-xs text-muted-foreground">wolfXmonitor · monitor.xwolf.space</span>
+          <span className="font-mono text-xs text-muted-foreground">GuardiX · monitor.xwolf.space</span>
           <div className="flex items-center gap-4">
             <Link href="/docs" className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors">
               Documentation

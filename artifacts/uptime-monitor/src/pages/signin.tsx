@@ -30,17 +30,17 @@ export default function SignIn() {
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
       <Helmet>
-        <title>Sign In — wolfXmonitor</title>
-        <meta name="description" content="Sign in to your wolfXmonitor account and keep an eye on your uptime." />
-        <meta property="og:title" content="Sign In — wolfXmonitor" />
+        <title>Sign In — GuardiX</title>
+        <meta name="description" content="Sign in to your GuardiX account and keep an eye on your uptime." />
+        <meta property="og:title" content="Sign In — GuardiX" />
       </Helmet>
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
+          <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
         </Link>
         <Link href="/signup">
           <button className="font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors px-5 py-2 rounded font-bold tracking-wide">
@@ -51,19 +51,18 @@ export default function SignIn() {
 
       <div className="flex min-h-screen pt-16">
         {/* Left — brand panel */}
-        <div className="hidden lg:flex flex-col justify-center px-16 w-[52%] grid-bg relative border-r border-border">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-background/40 pointer-events-none" />
+        <div className="hidden lg:flex flex-col justify-center px-16 w-[52%] relative border-r border-border">
           <div className="relative z-10 max-w-lg">
-            <div className="inline-flex items-center gap-2 border border-primary/30 bg-primary/5 rounded-full px-4 py-1.5 mb-10">
+            <div className="inline-flex items-center gap-2 border border-border rounded-full px-3 py-1 mb-10">
               <span className="status-dot up" />
-              <span className="font-mono text-xs text-primary tracking-wider">ALL SYSTEMS OPERATIONAL</span>
+              <span className="font-mono text-xs text-muted-foreground tracking-wide">All systems operational</span>
             </div>
-            <h1 className="font-display leading-none mb-6">
-              <span className="block text-[clamp(48px,6vw,96px)] text-foreground">WELCOME</span>
-              <span className="block text-[clamp(48px,6vw,96px)] text-primary">BACK.</span>
+            <h1 className="font-display leading-[1.05] mb-6">
+              <span className="block text-[clamp(44px,5.5vw,84px)] text-foreground">Welcome</span>
+              <span className="block text-[clamp(44px,5.5vw,84px)] text-primary">back.</span>
             </h1>
             <p className="font-mono text-muted-foreground text-sm leading-relaxed mb-12 max-w-sm">
-              I am just a wolf — watching your endpoints. Every minute. Every day. Never sleeping.
+              GuardiX watches your endpoints. Every minute. Every day. Never sleeping.
             </p>
             <div className="space-y-4">
               {[

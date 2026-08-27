@@ -49,16 +49,16 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
       <Helmet>
-        <title>Get Started Free — wolfXmonitor</title>
-        <meta name="description" content="Create your free wolfXmonitor account. Monitor up to 5 sites with instant downtime alerts." />
-        <meta property="og:title" content="Get Started Free — wolfXmonitor" />
+        <title>Get Started Free — GuardiX</title>
+        <meta name="description" content="Create your free GuardiX account. Monitor up to 5 sites with instant downtime alerts." />
+        <meta property="og:title" content="Get Started Free — GuardiX" />
       </Helmet>
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
+          <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
         </Link>
         <Link href="/signin">
           <button className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">
@@ -69,18 +69,17 @@ export default function SignUp() {
 
       <div className="flex min-h-screen pt-16">
         {/* Left — brand panel */}
-        <div className="hidden lg:flex flex-col justify-center px-16 w-[52%] grid-bg relative border-r border-border">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-background/40 pointer-events-none" />
+        <div className="hidden lg:flex flex-col justify-center px-16 w-[52%] relative border-r border-border">
           <div className="relative z-10 max-w-lg">
-            <h1 className="font-display leading-none mb-6">
-              <span className="block text-[clamp(44px,5.5vw,88px)] text-foreground">START</span>
-              <span className="block text-[clamp(44px,5.5vw,88px)] text-foreground">WATCHING</span>
-              <span className="block text-[clamp(44px,5.5vw,88px)] text-primary">NOW.</span>
+            <h1 className="font-display leading-[1.05] mb-6">
+              <span className="block text-[clamp(40px,5vw,76px)] text-foreground">Start</span>
+              <span className="block text-[clamp(40px,5vw,76px)] text-foreground">watching</span>
+              <span className="block text-[clamp(40px,5vw,76px)] text-primary">now.</span>
             </h1>
             <p className="font-mono text-muted-foreground text-sm leading-relaxed mb-12 max-w-sm">
               Free forever. Add your Render, Railway, or Fly.io endpoints and keep them alive around the clock.
             </p>
-            <div className="grid grid-cols-3 border border-border bg-card/50 rounded">
+            <div className="grid grid-cols-3 border border-border bg-card rounded-lg overflow-hidden">
               {[
                 { value: "99.9%", label: "Uptime SLA" },
                 { value: "<30s", label: "Detection" },

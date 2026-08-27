@@ -126,19 +126,19 @@ export default function Docs() {
   return (
     <div className="min-h-screen bg-background text-foreground dark">
       <Helmet>
-        <title>Documentation — wolfXmonitor</title>
-        <meta name="description" content="Complete documentation for wolfXmonitor — setup, monitoring, alerts, API reference, and more." />
+        <title>Documentation — GuardiX</title>
+        <meta name="description" content="Complete documentation for GuardiX — setup, monitoring, alerts, API reference, and more." />
       </Helmet>
 
       {/* Top bar */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
               <Zap className="w-3.5 h-3.5 text-primary" />
             </div>
             <span className="font-display text-lg tracking-wide">
-              wolf<span className="text-primary">X</span>monitor
+              Guardi<span className="text-primary">X</span>
             </span>
             <span className="hidden sm:block font-mono text-xs text-muted-foreground ml-1">/ docs</span>
           </Link>
@@ -216,7 +216,7 @@ export default function Docs() {
           {/* Overview */}
           <H2 id="overview">Overview</H2>
           <P>
-            wolfXmonitor is a full-stack SaaS uptime monitoring platform. It pings your websites and APIs
+            GuardiX is a full-stack SaaS uptime monitoring platform. It pings your websites and APIs
             every minute and alerts you instantly — by email, Telegram, WhatsApp, and Discord — the moment
             they go down. It supports multiple users, Free and Pro subscription tiers, a public status page,
             and a full admin control panel.
@@ -240,7 +240,7 @@ export default function Docs() {
           <H3>2. Add your first monitor</H3>
           <P>
             Go to <Code>New Monitor</Code> in the sidebar. Enter a name and the URL you want to watch
-            (e.g. <Code>https://yourdomain.com</Code>). wolfXmonitor pings it <strong className="text-foreground">immediately</strong> the
+            (e.g. <Code>https://yourdomain.com</Code>). GuardiX pings it <strong className="text-foreground">immediately</strong> the
             moment you save, then continues on your chosen interval.
           </P>
           <H3>3. Set up alerts</H3>
@@ -252,7 +252,7 @@ export default function Docs() {
           {/* Monitors */}
           <H2 id="monitors">Monitors</H2>
           <P>
-            Each monitor is a URL that wolfXmonitor checks on a fixed interval. When a check fails
+            Each monitor is a URL that GuardiX checks on a fixed interval. When a check fails
             (connection refused, timeout, non-2xx status code), an incident is opened and all enabled alert
             channels fire. When the URL comes back up, a recovery alert is sent.
           </P>
@@ -273,7 +273,7 @@ export default function Docs() {
             also pinged instantly whenever the server restarts.
           </Note>
           <P>
-            When a ping fails, wolfXmonitor records the exact reason — DNS failure, connection refused,
+            When a ping fails, GuardiX records the exact reason — DNS failure, connection refused,
             SSL error, timeout, or HTTP status code (404, 502, etc.) — and includes it in every alert.
           </P>
           <P>
@@ -290,14 +290,14 @@ export default function Docs() {
 
           <H3 id="telegram">Telegram</H3>
           <P>
-            wolfXmonitor sends alerts via the official Telegram Bot API. Messages are formatted with HTML
+            GuardiX sends alerts via the official Telegram Bot API. Messages are formatted with HTML
             and arrive instantly in your Telegram chat.
           </P>
           <P><strong className="text-foreground">Setup:</strong></P>
           <ol className="font-mono text-sm text-muted-foreground leading-relaxed mb-6 space-y-2 list-decimal list-inside">
             <li>Open Telegram and message <Code>@userinfobot</Code> — send <Code>/start</Code> to get your numeric Chat ID.</li>
             <li>Also message <Code>@wolfXmonitor_bot</Code> and send <Code>/start</Code> to activate the bot for your chat.</li>
-            <li>Go to <Code>Integrations &amp; API</Code> in wolfXmonitor, paste your Chat ID, click Save.</li>
+            <li>Go to <Code>Integrations &amp; API</Code> in GuardiX, paste your Chat ID, click Save.</li>
             <li>Click <Code>Send test message</Code> to verify — a test alert will appear in your Telegram.</li>
           </ol>
 
@@ -308,7 +308,7 @@ export default function Docs() {
           </P>
           <P><strong className="text-foreground">Setup:</strong></P>
           <ol className="font-mono text-sm text-muted-foreground leading-relaxed mb-6 space-y-2 list-decimal list-inside">
-            <li>Go to <Code>Integrations &amp; API</Code> in wolfXmonitor.</li>
+            <li>Go to <Code>Integrations &amp; API</Code> in GuardiX.</li>
             <li>Enter your phone number in international format, e.g. <Code>+254712345678</Code>.</li>
             <li>Click Save, then Send test message.</li>
           </ol>
@@ -326,7 +326,7 @@ export default function Docs() {
           <ol className="font-mono text-sm text-muted-foreground leading-relaxed mb-6 space-y-2 list-decimal list-inside">
             <li>Open Discord and go to the server &amp; channel where you want alerts.</li>
             <li>Click <strong className="text-foreground">Edit Channel → Integrations → Webhooks → New Webhook</strong>.</li>
-            <li>Name it <Code>wolfXmonitor</Code> and click <strong className="text-foreground">Copy Webhook URL</strong>.</li>
+            <li>Name it <Code>GuardiX</Code> and click <strong className="text-foreground">Copy Webhook URL</strong>.</li>
             <li>Paste the URL in <Code>Integrations &amp; API</Code> → Discord card, click Save.</li>
             <li>Click <Code>Send test message</Code> — a green test embed should appear in your channel.</li>
           </ol>
@@ -480,7 +480,7 @@ export default function Docs() {
 
           <H3>Can I monitor non-HTTP services?</H3>
           <P>
-            Currently wolfXmonitor monitors HTTP/HTTPS URLs only. TCP port monitoring and SSL expiry
+            Currently GuardiX monitors HTTP/HTTPS URLs only. TCP port monitoring and SSL expiry
             checks are on the roadmap.
           </P>
 
@@ -506,7 +506,7 @@ export default function Docs() {
           {/* Privacy */}
           <H2 id="privacy">Privacy</H2>
           <P>
-            wolfXmonitor collects only the data required to operate the service: your name, email address,
+            GuardiX collects only the data required to operate the service: your name, email address,
             the URLs you choose to monitor, and payment details processed exclusively by Paystack (we never
             store card numbers). Ping results and alert history are stored in PostgreSQL on the VPS and are
             never shared with third parties.
@@ -527,7 +527,7 @@ export default function Docs() {
 
           <div className="mt-16 pt-8 border-t border-border flex items-center justify-between">
             <span className="font-mono text-xs text-muted-foreground">
-              wolfXmonitor · monitor.xwolf.space
+              GuardiX · monitor.xwolf.space
             </span>
             <div className="flex items-center gap-4">
               <Link href="/privacy" className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors">

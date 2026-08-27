@@ -51,7 +51,7 @@ export async function sendSecurityAlert(opts: {
   const html = `
 <div style="font-family:'Courier New',monospace;max-width:560px;margin:0 auto;background:#080e0a;color:#d1ffd6;padding:32px;border-radius:8px;">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-    <span style="font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;">wolf<span style="color:#22c55e">X</span>monitor</span>
+    <span style="font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;">Guardi<span style="color:#22c55e">X</span></span>
   </div>
   <div style="font-size:10px;color:#4b7a55;letter-spacing:3px;text-transform:uppercase;margin-bottom:28px;border-bottom:1px solid #1a3a22;padding-bottom:16px;">Security Alert</div>
   <div style="background:#0f0f0f;border:1px solid ${meta.color}44;border-left:3px solid ${meta.color};border-radius:6px;padding:20px;margin-bottom:20px;">
@@ -68,15 +68,15 @@ export async function sendSecurityAlert(opts: {
     <a href="https://monitor.xwolf.space/admin?tab=security" style="color:#22c55e;">monitor.xwolf.space/admin → Security tab</a>
   </div>
   <div style="margin-top:28px;padding-top:16px;border-top:1px solid #1a3a22;font-size:10px;color:#4b5563;text-align:center;letter-spacing:1px;">
-    wolfXmonitor Security · Watching 24/7
+    GuardiX Security · Watching 24/7
   </div>
 </div>`;
 
   try {
     await axios.post(BREVO_API_URL, {
       sender: { name: config.senderName, email: config.senderEmail },
-      to: [{ email: securityEmail, name: "wolfXmonitor Admin" }],
-      subject: `${meta.emoji} wolfXmonitor Security: ${meta.label} from ${ip}`,
+      to: [{ email: securityEmail, name: "GuardiX Admin" }],
+      subject: `${meta.emoji} GuardiX Security: ${meta.label} from ${ip}`,
       htmlContent: html,
     }, {
       headers: { "api-key": config.apiKey, "content-type": "application/json", accept: "application/json" },

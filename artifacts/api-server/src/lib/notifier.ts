@@ -70,19 +70,19 @@ export async function sendWhatsAppMessage(toPhone: string, body: string): Promis
 
 export function buildDownMessage(monitorName: string, monitorUrl: string, error?: string | null): string {
   return [
-    `🔴 <b>wolfXmonitor ALERT</b>`,
+    `🔴 <b>GuardiX ALERT</b>`,
     ``,
     `<b>${monitorName}</b> is DOWN`,
     `${monitorUrl}`,
     error ? `\nError: ${error}` : "",
     ``,
-    `The wolf is watching — you'll be notified when it recovers.`,
+    `GuardiX is watching — you'll be notified when it recovers.`,
   ].join("\n").trim();
 }
 
 export function buildDownMessagePlain(monitorName: string, monitorUrl: string, error?: string | null): string {
   return [
-    `wolfXmonitor ALERT`,
+    `GuardiX ALERT`,
     ``,
     `${monitorName} is DOWN`,
     monitorUrl,
@@ -94,25 +94,25 @@ export function buildDownMessagePlain(monitorName: string, monitorUrl: string, e
 
 export function buildRecoveryMessage(monitorName: string, monitorUrl: string, responseTimeMs?: number | null): string {
   return [
-    `✅ <b>wolfXmonitor RECOVERY</b>`,
+    `✅ <b>GuardiX RECOVERY</b>`,
     ``,
     `<b>${monitorName}</b> is back ONLINE`,
     `${monitorUrl}`,
     responseTimeMs ? `\nResponse time: ${responseTimeMs}ms` : "",
     ``,
-    `All clear. The wolf continues watching.`,
+    `All clear. GuardiX is still watching.`,
   ].join("\n").trim();
 }
 
 export function buildRecoveryMessagePlain(monitorName: string, monitorUrl: string, responseTimeMs?: number | null): string {
   return [
-    `wolfXmonitor RECOVERY`,
+    `GuardiX RECOVERY`,
     ``,
     `${monitorName} is back ONLINE`,
     monitorUrl,
     responseTimeMs ? `Response time: ${responseTimeMs}ms` : "",
     ``,
-    `All clear. The wolf continues watching.`,
+    `All clear. GuardiX is still watching.`,
   ].filter(Boolean).join("\n");
 }
 
@@ -129,21 +129,21 @@ export async function sendDiscordAlert(
   const color = isTest ? 0x22c55e : isDown ? 0xe53e3e : 0x22c55e;
   const emoji = isTest ? "🧪" : isDown ? "🔴" : "✅";
   const title = isTest
-    ? "wolfXmonitor — Test Alert"
+    ? "GuardiX — Test Alert"
     : isDown
-    ? "wolfXmonitor — Site Down"
-    : "wolfXmonitor — Site Recovered";
+    ? "GuardiX — Site Down"
+    : "GuardiX — Site Recovered";
 
   const descriptionLines: string[] = [];
   if (isTest) {
     descriptionLines.push(`**${monitorName}** — Discord is connected!`);
-    descriptionLines.push(`wolfXmonitor alerts are now active on this channel.`);
+    descriptionLines.push(`GuardiX alerts are now active on this channel.`);
   } else if (isDown) {
     descriptionLines.push(`**${monitorName}** is **DOWN**`);
-    descriptionLines.push(`The wolf is watching — you'll be notified when it recovers.`);
+    descriptionLines.push(`GuardiX is watching — you'll be notified when it recovers.`);
   } else {
     descriptionLines.push(`**${monitorName}** is back **ONLINE**`);
-    descriptionLines.push(`All clear. The wolf continues watching.`);
+    descriptionLines.push(`All clear. GuardiX is still watching.`);
   }
 
   const fields: { name: string; value: string; inline: boolean }[] = [
@@ -172,7 +172,7 @@ export async function sendDiscordAlert(
         description: descriptionLines.join("\n"),
         color,
         fields,
-        footer: { text: "wolfXmonitor · monitor.xwolf.space" },
+        footer: { text: "GuardiX · monitor.xwolf.space" },
       },
     ],
   };

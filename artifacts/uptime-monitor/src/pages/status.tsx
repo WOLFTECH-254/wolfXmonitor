@@ -34,9 +34,9 @@ export default function StatusPage() {
   return (
     <>
       <Helmet>
-        <title>System Status — wolfXmonitor</title>
+        <title>System Status — GuardiX</title>
         <meta name="description" content="Live status of all monitored services. Check uptime, response times, and recent incidents." />
-        <meta property="og:title" content="System Status — wolfXmonitor" />
+        <meta property="og:title" content="System Status — GuardiX" />
       </Helmet>
     <div className="min-h-screen bg-background text-foreground dark">
       <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
@@ -44,7 +44,7 @@ export default function StatusPage() {
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
+          <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
         </Link>
         <a href="/dashboard" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
           Back to site
@@ -59,7 +59,7 @@ export default function StatusPage() {
           : hasDown ? "border-destructive/40 bg-destructive/5"
           : "border-border bg-card"
         }`}>
-          <div className={`w-3 h-3 rounded-full shrink-0 ${allUp ? "bg-primary animate-pulse" : hasDown ? "bg-destructive animate-pulse" : "bg-muted-foreground"}`} />
+          <div className={`w-3 h-3 rounded-full shrink-0 ${allUp ? "bg-primary" : hasDown ? "bg-destructive" : "bg-muted-foreground"}`} />
           <div>
             <div className="font-display text-3xl uppercase tracking-wide leading-none mb-1">
               {isLoading ? "Checking…" : allUp ? "All Systems Operational" : hasDown ? `${data?.down} Service${data?.down !== 1 ? "s" : ""} Down` : data?.total === 0 ? "No monitors configured" : "Checking…"}

@@ -47,7 +47,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Zap className="w-4 h-4 text-primary" />
           </div>
           <span className="font-display text-xl tracking-wide text-foreground">
-            wolf<span className="text-primary">X</span>monitor
+            Guardi<span className="text-primary">X</span>
           </span>
         </Link>
         {/* Close button — mobile only */}
@@ -230,7 +230,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Zap className="w-3.5 h-3.5 text-primary" />
           </div>
           <span className="font-display text-lg tracking-wide text-foreground">
-            wolf<span className="text-primary">X</span>monitor
+            Guardi<span className="text-primary">X</span>
           </span>
         </Link>
         <button
@@ -253,11 +253,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="md:hidden fixed inset-0 z-50 flex">
             {/* Backdrop */}
             <div
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60"
               onClick={() => setMobileOpen(false)}
             />
             {/* Drawer */}
-            <aside className="relative w-72 max-w-[85vw] bg-card border-r border-border flex flex-col h-full shadow-2xl">
+            <aside className="relative w-72 max-w-[85vw] bg-card border-r border-border flex flex-col h-full">
               <SidebarContent />
             </aside>
           </div>

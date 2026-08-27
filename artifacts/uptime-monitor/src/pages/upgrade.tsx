@@ -198,16 +198,16 @@ export default function Upgrade() {
   return (
     <div className="min-h-screen bg-background text-foreground dark">
       <Helmet>
-        <title>Upgrade to Pro — wolfXmonitor</title>
-        <meta name="description" content="Unlock unlimited monitors, faster checks, and priority alerts with wolfXmonitor Pro." />
-        <meta property="og:title" content="Upgrade to Pro — wolfXmonitor" />
+        <title>Upgrade to Pro — GuardiX</title>
+        <meta name="description" content="Unlock unlimited monitors, faster checks, and priority alerts with GuardiX Pro." />
+        <meta property="og:title" content="Upgrade to Pro — GuardiX" />
       </Helmet>
 
       {/* ── Payment Method Picker (Kenya only) ─────────────────────────────── */}
       {showMethodPicker && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70"
           onClick={() => setShowMethodPicker(false)}>
-          <div className="bg-card border border-border rounded-lg p-8 w-full max-w-sm mx-4 shadow-2xl"
+          <div className="bg-card border border-border rounded-lg p-8 w-full max-w-sm mx-4"
             onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-6">
               <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">Choose Payment Method</p>
@@ -259,12 +259,12 @@ export default function Upgrade() {
         </div>
       )}
 
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background/95 backdrop-blur-sm">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
+          <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
         </Link>
         <Link href="/dashboard" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">← Dashboard</Link>
       </nav>

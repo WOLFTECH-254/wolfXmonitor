@@ -49,16 +49,16 @@ export default function InstancePage() {
   return (
     <div className="min-h-screen bg-background text-foreground dark">
       <Helmet>
-        <title>Status Page — wolfXmonitor</title>
+        <title>Status Page — GuardiX</title>
         <meta name="description" content="Live public status page showing real-time uptime and response time for monitored services." />
-        <meta property="og:title" content="Status Page — wolfXmonitor" />
+        <meta property="og:title" content="Status Page — GuardiX" />
       </Helmet>
       <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <span className="font-display text-xl tracking-wide">wolf<span className="text-primary">X</span>monitor</span>
+          <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
         </Link>
         <Link href="/status" className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
           <ArrowLeft className="w-3 h-3" /> All services
@@ -155,7 +155,7 @@ export default function InstancePage() {
         </div>
 
         <div className="mt-8 text-center font-mono text-xs text-muted-foreground">
-          Powered by <Link href="/" className="text-primary hover:underline">wolfXmonitor</Link>
+          Powered by <Link href="/" className="text-primary hover:underline">GuardiX</Link>
         </div>
       </div>
     </div>

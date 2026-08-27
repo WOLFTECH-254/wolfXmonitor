@@ -83,19 +83,19 @@ export default function DeveloperPage() {
   return (
     <div className="min-h-screen bg-background text-foreground dark">
       <Helmet>
-        <title>Developer — wolfXmonitor</title>
-        <meta name="description" content={`Meet the developer behind wolfXmonitor — ${displayName}`} />
+        <title>Developer — GuardiX</title>
+        <meta name="description" content={`Meet the developer behind GuardiX — ${displayName}`} />
       </Helmet>
 
       {/* Top nav bar */}
-      <nav className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <nav className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
               <Zap className="w-3.5 h-3.5 text-primary" />
             </div>
             <span className="font-display text-lg tracking-wide text-foreground">
-              wolf<span className="text-primary">X</span>monitor
+              Guardi<span className="text-primary">X</span>
             </span>
           </Link>
           <Link href="/" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
@@ -121,7 +121,7 @@ export default function DeveloperPage() {
                   <img
                     src={avatarSrc}
                     alt={displayName}
-                    className="w-32 h-32 rounded-full border-2 border-primary/30 object-cover shadow-lg shadow-primary/10"
+                    className="w-32 h-32 rounded-full border-2 border-primary/30 object-cover"
                   />
                 ) : (
                   <div className="w-32 h-32 rounded-full border-2 border-primary/30 bg-primary/5 flex items-center justify-center">
@@ -214,10 +214,10 @@ export default function DeveloperPage() {
                 <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
                   <Zap className="w-4 h-4 text-primary" />
                 </div>
-                <h2 className="font-display text-2xl uppercase tracking-wide">About wolfXmonitor</h2>
+                <h2 className="font-display text-2xl uppercase tracking-wide">About GuardiX</h2>
               </div>
               <p className="font-mono text-sm text-muted-foreground leading-relaxed">
-                wolfXmonitor is a full-stack uptime monitoring platform built for developers and businesses who need to know the moment their services go down.
+                GuardiX is a full-stack uptime monitoring platform built for developers and businesses who need to know the moment their services go down.
                 Real-time alerts via email, Telegram, WhatsApp, and Discord — with a clean dark interface designed for 24/7 reliability.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
@@ -246,10 +246,10 @@ export default function DeveloperPage() {
       <footer className="border-t border-border mt-16 py-8">
         <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-widest">
-            © {new Date().getFullYear()} wolfXmonitor
+            © {new Date().getFullYear()} GuardiX
           </p>
           <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/50">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary" />
             Powered by WOLF TECH
           </div>
         </div>

@@ -25,7 +25,7 @@ export async function getEmailConfig(): Promise<EmailConfig | null> {
     const senderName =
       map.get("brevo_sender_name") ??
       process.env.BREVO_SENDER_NAME ??
-      "wolfXmonitor";
+      "GuardiX";
 
     if (!apiKey) return null;
     return { apiKey, senderEmail, senderName };
@@ -35,7 +35,7 @@ export async function getEmailConfig(): Promise<EmailConfig | null> {
     return {
       apiKey,
       senderEmail: process.env.BREVO_SENDER_EMAIL ?? "alerts@xwolf.space",
-      senderName: process.env.BREVO_SENDER_NAME ?? "wolfXmonitor",
+      senderName: process.env.BREVO_SENDER_NAME ?? "GuardiX",
     };
   }
 }
@@ -56,13 +56,13 @@ async function sendEmail(
 const BRAND = `<div style="font-family:'Courier New',monospace;max-width:540px;margin:0 auto;background:#080e0a;color:#d1ffd6;padding:32px;border-radius:8px;">`;
 const BRAND_HEADER = `
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-    <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:1px;">wolf<span style="color:#22c55e">X</span>monitor</span>
+    <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:1px;">Guardi<span style="color:#22c55e">X</span></span>
   </div>
   <div style="font-size:10px;color:#4b7a55;letter-spacing:3px;text-transform:uppercase;margin-bottom:28px;border-bottom:1px solid #1a3a22;padding-bottom:16px;">Uptime Monitor</div>
 `;
 const BRAND_FOOTER = `
   <div style="margin-top:28px;padding-top:16px;border-top:1px solid #1a3a22;font-size:10px;color:#4b5563;text-align:center;letter-spacing:1px;">
-    wolfXmonitor is watching. 24/7. Every minute.
+    GuardiX is watching. 24/7. Every minute.
   </div>
 </div>`;
 
@@ -79,7 +79,7 @@ export async function sendSignupWelcomeEmail(opts: {
       <div style="font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Welcome aboard</div>
       <div style="font-size:22px;font-weight:700;color:#ffffff;margin-bottom:8px;">Hey ${toName} 👋</div>
       <div style="font-size:13px;color:#d1ffd6;line-height:1.7;">
-        Your wolfXmonitor account is ready. The wolf is now on guard — add your first monitor and we'll watch it every minute, 24/7.
+        Your GuardiX account is ready. Your guard is up — add your first monitor and we'll watch it every minute, 24/7.
       </div>
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.8;">
@@ -95,7 +95,7 @@ export async function sendSignupWelcomeEmail(opts: {
     await sendEmail(config, {
       sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
-      subject: `Welcome to wolfXmonitor, ${toName}!`,
+      subject: `Welcome to GuardiX, ${toName}!`,
       htmlContent: html,
     });
     logger.info({ toEmail }, "Signup welcome email sent");
@@ -125,7 +125,7 @@ export async function sendWelcomeAlert(opts: {
       <div style="font-size:12px;color:#22c55e;">${monitorUrl}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
-      Hey ${toName}, wolfXmonitor is now watching <strong style="color:#d1ffd6;">${monitorName}</strong>. You will be notified immediately if it goes down.
+      Hey ${toName}, GuardiX is now watching <strong style="color:#d1ffd6;">${monitorName}</strong>. You will be notified immediately if it goes down.
     </div>
   ${BRAND_FOOTER}`;
 
@@ -165,7 +165,7 @@ export async function sendDownAlert(opts: {
       ${error ? `<div style="margin-top:12px;font-size:11px;color:#ef4444;background:#2a0a0a;padding:10px;border-radius:4px;font-family:'Courier New',monospace;">${error}</div>` : ""}
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
-      Hey ${toName}, your endpoint went offline. wolfXmonitor will keep checking and notify you the moment it recovers.
+      Hey ${toName}, your endpoint went offline. GuardiX will keep checking and notify you the moment it recovers.
     </div>
   ${BRAND_FOOTER}`;
 
@@ -203,7 +203,7 @@ export async function sendDeleteAlert(opts: {
       <div style="font-size:12px;color:#6b7280;">${monitorUrl}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
-      Hey ${toName}, the monitor for <strong style="color:#d1ffd6;">${monitorName}</strong> has been permanently deleted along with all its ping history. wolfXmonitor is no longer watching this endpoint.
+      Hey ${toName}, the monitor for <strong style="color:#d1ffd6;">${monitorName}</strong> has been permanently deleted along with all its ping history. GuardiX is no longer watching this endpoint.
     </div>
   ${BRAND_FOOTER}`;
 
@@ -261,7 +261,7 @@ export async function sendPaymentConfirmEmail(opts: {
       </div>
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
-      Thank you, ${toName}. Your Pro plan is now active — unlimited monitors, full history, and priority alerts. wolfXmonitor is watching 24/7.
+      Thank you, ${toName}. Your Pro plan is now active — unlimited monitors, full history, and priority alerts. GuardiX is watching 24/7.
     </div>
   ${BRAND_FOOTER}`;
 
@@ -269,7 +269,7 @@ export async function sendPaymentConfirmEmail(opts: {
     await sendEmail(config, {
       sender: { name: config.senderName, email: config.senderEmail },
       to: [{ email: toEmail, name: toName }],
-      subject: `Pro plan activated — wolfXmonitor`,
+      subject: `Pro plan activated — GuardiX`,
       htmlContent: html,
     });
     logger.info({ toEmail, planSlug }, "Payment confirmation email sent");
@@ -301,7 +301,7 @@ export async function sendRecoveryAlert(opts: {
       ${responseTimeMs ? `<div style="margin-top:12px;font-size:13px;color:#22c55e;font-weight:600;">Response time: ${responseTimeMs}ms</div>` : ""}
     </div>
     <div style="font-size:12px;color:#6b7280;line-height:1.7;">
-      Good news, ${toName}! <strong style="color:#d1ffd6;">${monitorName}</strong> is back online and responding normally. wolfXmonitor continues watching.
+      Good news, ${toName}! <strong style="color:#d1ffd6;">${monitorName}</strong> is back online and responding normally. GuardiX continues watching.
     </div>
   ${BRAND_FOOTER}`;
 

@@ -23,7 +23,7 @@ function StatusBadge({ status, active }: { status: "up" | "down" | "unknown"; ac
     </span>
   );
   if (status === "down") return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-destructive uppercase tracking-widest animate-pulse">
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-destructive uppercase tracking-widest">
       <span className="w-2 h-2 rounded-full bg-destructive" />
       Down
     </span>
@@ -70,7 +70,7 @@ export default function MonitoringPage() {
   return (
     <Layout>
       <Helmet>
-        <title>Monitors — wolfXmonitor</title>
+        <title>Monitors — GuardiX</title>
         <meta name="description" content="Manage all your uptime monitors, pause, resume, or add new ones." />
       </Helmet>
       <div className="space-y-6">

@@ -46,9 +46,12 @@ app.use(
     store: new PgSession({
       conString: process.env.DATABASE_URL,
       tableName: "user_sessions",
+      // The user_sessions table is provisioned by `db:push` (see
+      // lib/db/src/schema/sessions.ts). createTableIfMissing is unreliable
+      // against the bundled build, so keep it off.
       createTableIfMissing: false,
     }),
-    secret: process.env.SESSION_SECRET ?? "wolfxmonitor-dev-secret",
+    secret: process.env.SESSION_SECRET ?? "guardix-dev-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
