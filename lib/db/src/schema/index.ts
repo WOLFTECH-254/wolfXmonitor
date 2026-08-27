@@ -5,3 +5,5 @@ export * from "./sessions";
 export * from "./payments";
 export * from "./plans";
 export * from "./security";
+export * from "./teams";
+export * from "./status-pages";

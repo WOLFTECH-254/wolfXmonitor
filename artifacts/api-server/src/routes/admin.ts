@@ -4,6 +4,9 @@ import { desc, count, eq, sql, asc } from "drizzle-orm";
 import axios from "axios";
 import { requireAdmin } from "../middlewares/admin";
 import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
+import { invalidatePlanCache, getPlanBySlug } from "../lib/plans";
+import { recomputeOverLimit } from "../lib/plan-enforcement";
+import { planCreateSchema, planUpdateSchema, planStatusSchema } from "../lib/plan-schemas";
 
 const router = Router();
 
@@ -162,23 +165,91 @@ router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
 
 router.get("/admin/plans", requireAdmin, async (_req, res) => {
   const plans = await db.select().from(plansTable).orderBy(asc(plansTable.sortOrder));
-  res.json(plans);
+  const [subs] = [await db.select({ planSlug: usersTable.planSlug, n: count() }).from(usersTable).groupBy(usersTable.planSlug)];
+  const subMap = new Map((subs as unknown as { planSlug: string | null; n: number }[]).map((r) => [r.planSlug ?? "", Number(r.n)]));
+  res.json(plans.map((p) => ({ ...p, subscriberCount: subMap.get(p.slug) ?? 0 })));
 });
 
-router.put("/admin/plans/:slug", requireAdmin, async (req, res) => {
-  const { slug } = req.params;
-  const { priceUsd, monitorLimit, isActive, name } = req.body as {
-    priceUsd?: number; monitorLimit?: number; isActive?: boolean; name?: string;
-  };
-  const set: Record<string, unknown> = {};
-  if (priceUsd !== undefined && priceUsd >= 0) set.priceUsd = String(priceUsd);
-  if (monitorLimit !== undefined) set.monitorLimit = monitorLimit;
-  if (isActive !== undefined) set.isActive = isActive;
-  if (name?.trim()) set.name = name.trim();
+router.post("/admin/plans", requireAdmin, async (req, res) => {
+  const parsed = planCreateSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid plan" }); return; }
+  const p = parsed.data;
 
-  const [updated] = await db.update(plansTable).set(set).where(eq(plansTable.slug, slug)).returning();
+  const exists = await db.select().from(plansTable).where(eq(plansTable.slug, p.slug));
+  if (exists.length) { res.status(409).json({ error: "A plan with that slug already exists" }); return; }
+
+  const [created] = await db.insert(plansTable).values({
+    ...p,
+    priceUsd: String(p.priceUsd),
+    updatedAt: new Date(),
+  }).returning();
+  invalidatePlanCache();
+  res.status(201).json(created);
+});
+
+router.patch("/admin/plans/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = planUpdateSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid plan" }); return; }
+  const b = parsed.data;
+
+  const set: Partial<typeof plansTable.$inferInsert> = { updatedAt: new Date() };
+  for (const k of [
+    "name", "description", "currency", "billingInterval", "durationDays",
+    "monitorLimit", "checkIntervalSeconds", "retentionDays", "statusPageLimit", "teamMemberLimit",
+    "emailAlerts", "webhookAlerts", "telegramAlerts", "sslMonitoring",
+    "isActive", "isFree", "isUnlimited", "isPopular", "sortOrder",
+  ] as const) {
+    if (b[k] !== undefined) (set as Record<string, unknown>)[k] = b[k];
+  }
+  if (b.priceUsd !== undefined) set.priceUsd = String(b.priceUsd);
+
+  const [updated] = await db.update(plansTable).set(set).where(eq(plansTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Plan not found" }); return; }
+  invalidatePlanCache();
   res.json(updated);
+});
+
+router.patch("/admin/plans/:id/status", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = planStatusSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "isActive (boolean) required" }); return; }
+  const [updated] = await db.update(plansTable)
+    .set({ isActive: parsed.data.isActive, updatedAt: new Date() })
+    .where(eq(plansTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Plan not found" }); return; }
+  invalidatePlanCache();
+  res.json(updated);
+});
+
+router.delete("/admin/plans/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const reassignTo = typeof req.query.reassignTo === "string" ? req.query.reassignTo : null;
+
+  const [plan] = await db.select().from(plansTable).where(eq(plansTable.id, id));
+  if (!plan) { res.status(404).json({ error: "Plan not found" }); return; }
+  if (plan.isFree) { res.status(400).json({ error: "The Free plan cannot be deleted — it's the fallback for every account." }); return; }
+
+  const [{ n }] = await db.select({ n: count() }).from(usersTable).where(eq(usersTable.planSlug, plan.slug));
+  const subscribers = Number(n ?? 0);
+  if (subscribers > 0) {
+    if (!reassignTo) {
+      res.status(409).json({
+        error: `${subscribers} account${subscribers === 1 ? "" : "s"} are on this plan. Pass ?reassignTo=<slug> to move them first.`,
+        subscribers,
+      });
+      return;
+    }
+    const [target] = await db.select().from(plansTable).where(eq(plansTable.slug, reassignTo));
+    if (!target) { res.status(400).json({ error: `reassignTo plan "${reassignTo}" does not exist` }); return; }
+    await db.update(usersTable)
+      .set({ planSlug: target.slug, plan: target.isFree ? "free" : "pro" })
+      .where(eq(usersTable.planSlug, plan.slug));
+  }
+
+  await db.delete(plansTable).where(eq(plansTable.id, id));
+  invalidatePlanCache();
+  res.json({ ok: true, reassignedTo: reassignTo ?? null });
 });
 
 // ── Payments ────────────────────────────────────────────────────────────────
@@ -314,18 +385,30 @@ router.put("/admin/settings/oauth", requireAdmin, async (req, res) => {
 
 router.patch("/admin/users/:id/plan", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  const { plan } = req.body as { plan?: string };
-  if (!plan || !["free", "pro"].includes(plan)) {
-    res.status(400).json({ error: "plan must be 'free' or 'pro'" });
-    return;
-  }
+  // Accept a plan slug (any plan) OR the legacy "free"/"pro" shorthand.
+  const raw = (req.body as { plan?: string; planSlug?: string }).planSlug ?? (req.body as { plan?: string }).plan;
+  if (!raw) { res.status(400).json({ error: "plan (slug) is required" }); return; }
+  const slug = raw === "pro" ? "pro" : raw;
+
+  const target = await getPlanBySlug(slug);
+  if (!target) { res.status(400).json({ error: `Plan "${slug}" does not exist` }); return; }
+
+  const now = new Date();
   const [updated] = await db
     .update(usersTable)
-    .set({ plan })
+    .set({
+      planSlug: target.slug,
+      plan: target.isFree ? "free" : "pro",
+      subscriptionStatus: "active",
+      subscriptionStartedAt: now,
+      planExpiresAt: target.isFree ? null : new Date(now.getTime() + target.durationDays * 86_400_000),
+    })
     .where(eq(usersTable.id, id))
-    .returning({ id: usersTable.id, plan: usersTable.plan });
+    .returning({ id: usersTable.id, plan: usersTable.plan, planSlug: usersTable.planSlug });
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(updated);
+
+  const over = await recomputeOverLimit(id);
+  res.json({ ...updated, overLimit: over });
 });
 
 // ── Footer / Site settings ────────────────────────────────────────────────

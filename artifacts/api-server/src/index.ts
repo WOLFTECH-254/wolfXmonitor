@@ -1,7 +1,8 @@
 import "./env";
 import app from "./app";
 import { logger } from "./lib/logger";
-import { initScheduler } from "./lib/scheduler";
+import { startBackgroundJobs } from "./lib/scheduler";
+import { seedPlans, migrateExistingUsers } from "./lib/plans";
 
 const rawPort = process.env["PORT"];
 
@@ -26,8 +27,15 @@ app.listen(port, async (err) => {
   logger.info({ port }, "Server listening");
 
   try {
-    await initScheduler();
+    await seedPlans();
+    await migrateExistingUsers();
   } catch (err) {
-    logger.error({ err }, "Failed to initialize scheduler");
+    logger.error({ err }, "Plan seed/migration failed");
+  }
+
+  try {
+    await startBackgroundJobs();
+  } catch (err) {
+    logger.error({ err }, "Failed to start background jobs");
   }
 });

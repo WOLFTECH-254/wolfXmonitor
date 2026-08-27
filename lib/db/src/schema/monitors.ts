@@ -11,12 +11,23 @@ export const monitorsTable = pgTable("monitors", {
   userId: integer("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   url: text("url").notNull(),
+  // Legacy minutes column (kept in sync). checkIntervalSeconds is canonical and
+  // supports sub-minute plans.
   intervalMinutes: integer("interval_minutes").notNull().default(5),
+  checkIntervalSeconds: integer("check_interval_seconds").notNull().default(300),
   active: boolean("active").notNull().default(true),
   lastPingedAt: timestamp("last_pinged_at"),
   lastStatus: monitorStatusEnum("last_status").notNull().default("unknown"),
   lastResponseTimeMs: integer("last_response_time_ms"),
   lastNotifiedDownAt: timestamp("last_notified_down_at"),
+  // SSL certificate monitoring (plan-gated).
+  sslCheckEnabled: boolean("ssl_check_enabled").notNull().default(false),
+  sslStatus: text("ssl_status").notNull().default("unknown"), // valid | expiring | expired | error | unknown
+  sslExpiresAt: timestamp("ssl_expires_at"),
+  sslDaysRemaining: integer("ssl_days_remaining"),
+  sslIssuer: text("ssl_issuer"),
+  sslLastCheckedAt: timestamp("ssl_last_checked_at"),
+  sslLastNotifiedAt: timestamp("ssl_last_notified_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -30,7 +41,11 @@ export const pingsTable = pgTable("pings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertMonitorSchema = createInsertSchema(monitorsTable).omit({ id: true, createdAt: true, lastPingedAt: true, lastStatus: true, lastResponseTimeMs: true });
+export const insertMonitorSchema = createInsertSchema(monitorsTable).omit({
+  id: true, createdAt: true, lastPingedAt: true, lastStatus: true, lastResponseTimeMs: true,
+  lastNotifiedDownAt: true, sslStatus: true, sslExpiresAt: true, sslDaysRemaining: true,
+  sslIssuer: true, sslLastCheckedAt: true, sslLastNotifiedAt: true,
+});
 export const updateMonitorSchema = insertMonitorSchema.partial();
 
 export type InsertMonitor = z.infer<typeof insertMonitorSchema>;

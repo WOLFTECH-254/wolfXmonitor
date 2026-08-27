@@ -3,6 +3,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+export interface PlanLimits {
+  slug: string;
+  name: string;
+  monitorLimit: number;
+  checkIntervalSeconds: number;
+  retentionDays: number;
+  statusPageLimit: number;
+  teamMemberLimit: number;
+  emailAlerts: boolean;
+  webhookAlerts: boolean;
+  telegramAlerts: boolean;
+  sslMonitoring: boolean;
+  isUnlimited: boolean;
+}
+
 export interface AuthUser {
   id: number;
   name: string;
@@ -11,7 +26,13 @@ export interface AuthUser {
   notificationsEnabled: boolean;
   isAdmin: boolean;
   country: string | null;
-  plan: string;
+  plan: string; // legacy "free" | "pro"
+  planSlug?: string;
+  planName?: string;
+  overLimit?: boolean;
+  subscriptionStatus?: string;
+  planExpiresAt?: string | null;
+  planLimits?: PlanLimits;
 }
 
 async function fetchMe(): Promise<AuthUser | null> {

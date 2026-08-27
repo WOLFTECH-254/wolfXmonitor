@@ -1,12 +1,25 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Send, MessageCircle, Loader2, CheckCircle2, Info } from "lucide-react";
+import { Send, MessageCircle, Loader2, CheckCircle2, Info, Lock } from "lucide-react";
+
+function UpgradeNudge({ feature }: { feature: string }) {
+  return (
+    <div className="bg-primary/5 border border-primary/30 rounded p-3 flex gap-2">
+      <Lock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+      <div className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+        {feature} alerts aren't included on your current plan.{" "}
+        <Link href="/upgrade" className="text-primary hover:underline font-semibold">Upgrade</Link> to enable them.
+      </div>
+    </div>
+  );
+}
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -58,6 +71,10 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Feature gating — mirrors backend enforcement in routes/auth.ts PUT /me/channels
+  const canTelegram = user?.planLimits?.telegramAlerts ?? true;
+  const canDiscord = user?.planLimits?.webhookAlerts ?? true;
+
   const [telegramChatId, setTelegramChatId] = useState("");
   const [whatsappPhone, setWhatsappPhone] = useState("");
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState("");
@@ -80,9 +97,9 @@ export default function Settings() {
     setSaving(true);
     try {
       await saveChannels({
-        telegramChatId: telegramChatId.trim() || undefined,
+        telegramChatId: canTelegram ? telegramChatId.trim() || undefined : undefined,
         whatsappPhone: whatsappPhone.trim() || undefined,
-        discordWebhookUrl: discordWebhookUrl.trim() || undefined,
+        discordWebhookUrl: canDiscord ? discordWebhookUrl.trim() || undefined : undefined,
       });
       toast({ title: "Saved", description: "Notification channels updated." });
     } catch (err) {
@@ -152,20 +169,25 @@ export default function Settings() {
                   onChange={(e) => setTelegramChatId(e.target.value)}
                   placeholder="e.g. 123456789"
                   className="font-mono text-sm"
+                  disabled={!canTelegram}
                 />
               </div>
 
-              <div className="bg-muted/30 border border-border rounded p-3 flex gap-2">
-                <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="font-mono text-[11px] text-muted-foreground leading-relaxed">
-                  To get your Chat ID: open Telegram, search for{" "}
-                  <span className="text-foreground font-semibold">@userinfobot</span> and send it{" "}
-                  <span className="text-foreground">/start</span>. It will reply with your numeric ID.
-                  Then message the GuardiX bot to activate alerts.
+              {canTelegram ? (
+                <div className="bg-muted/30 border border-border rounded p-3 flex gap-2">
+                  <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+                    To get your Chat ID: open Telegram, search for{" "}
+                    <span className="text-foreground font-semibold">@userinfobot</span> and send it{" "}
+                    <span className="text-foreground">/start</span>. It will reply with your numeric ID.
+                    Then message the GuardiX bot to activate alerts.
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <UpgradeNudge feature="Telegram" />
+              )}
 
-              {telegramChatId && (
+              {canTelegram && telegramChatId && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -262,19 +284,24 @@ export default function Settings() {
                   placeholder="https://discord.com/api/webhooks/..."
                   className="font-mono text-sm"
                   type="url"
+                  disabled={!canDiscord}
                 />
               </div>
 
-              <div className="bg-muted/30 border border-border rounded p-3 flex gap-2">
-                <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="font-mono text-[11px] text-muted-foreground leading-relaxed">
-                  In Discord: open your channel settings →{" "}
-                  <span className="text-foreground">Integrations → Webhooks → New Webhook</span> → copy the URL and paste it above.
-                  Alerts arrive as rich embeds with color-coded status.
+              {canDiscord ? (
+                <div className="bg-muted/30 border border-border rounded p-3 flex gap-2">
+                  <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+                    In Discord: open your channel settings →{" "}
+                    <span className="text-foreground">Integrations → Webhooks → New Webhook</span> → copy the URL and paste it above.
+                    Alerts arrive as rich embeds with color-coded status.
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <UpgradeNudge feature="Discord / webhook" />
+              )}
 
-              {discordWebhookUrl && (
+              {canDiscord && discordWebhookUrl && (
                 <Button
                   variant="outline"
                   size="sm"

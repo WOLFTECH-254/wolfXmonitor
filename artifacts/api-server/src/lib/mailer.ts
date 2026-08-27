@@ -318,3 +318,46 @@ export async function sendRecoveryAlert(opts: {
     logger.error({ err: msg, toEmail, monitorName }, "Failed to send recovery alert email");
   }
 }
+
+export async function sendSslExpiryAlert(opts: {
+  toEmail: string;
+  toName: string;
+  monitorName: string;
+  monitorUrl: string;
+  daysRemaining: number;
+  expiresAt: Date | null;
+}): Promise<void> {
+  const { toEmail, toName, monitorName, monitorUrl, daysRemaining, expiresAt } = opts;
+  const config = await getEmailConfig();
+  if (!config) {
+    logger.warn("Brevo API key not configured — skipping SSL expiry alert");
+    return;
+  }
+  const expired = daysRemaining < 0;
+  const html = `${BRAND}${BRAND_HEADER}
+    <div style="background:#1a0e0a;border:1px solid #f59e0b55;border-radius:6px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:10px;color:#f59e0b;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">SSL Certificate ${expired ? "Expired" : "Expiring"}</div>
+      <div style="font-size:24px;font-weight:700;color:#ffffff;margin-bottom:6px;">${monitorName}</div>
+      <div style="font-size:12px;color:#f59e0b;">${monitorUrl}</div>
+      <div style="margin-top:12px;font-size:13px;color:#f59e0b;font-weight:600;">
+        ${expired ? "The certificate has expired." : `Expires in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`}${expiresAt ? ` &middot; ${expiresAt.toUTCString()}` : ""}
+      </div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;line-height:1.7;">
+      Hey ${toName}, the TLS certificate for <strong style="color:#ffe4c4;">${monitorName}</strong> needs attention. Renew it to avoid browser warnings and downtime.
+    </div>
+  ${BRAND_FOOTER}`;
+
+  try {
+    await sendEmail(config, {
+      sender: { name: config.senderName, email: config.senderEmail },
+      to: [{ email: toEmail, name: toName }],
+      subject: `[SSL] ${monitorName} certificate ${expired ? "has expired" : `expires in ${daysRemaining}d`}`,
+      htmlContent: html,
+    });
+    logger.info({ toEmail, monitorName }, "SSL expiry alert email sent");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err: msg, toEmail, monitorName }, "Failed to send SSL expiry alert email");
+  }
+}

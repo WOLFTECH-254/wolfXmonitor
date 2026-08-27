@@ -13,9 +13,16 @@ export const usersTable = pgTable("users", {
   notificationsEnabled: boolean("notifications_enabled").notNull().default(true),
   isAdmin: boolean("is_admin").notNull().default(false),
   country: text("country"),
+  // `plan` is a legacy convenience ("free" | "pro"); `planSlug` is the real
+  // pointer at plans.slug and the source of truth for entitlements.
   plan: text("plan").notNull().default("free"),
   planSlug: text("plan_slug"),
+  subscriptionStatus: text("subscription_status").notNull().default("active"),
+  subscriptionStartedAt: timestamp("subscription_started_at"),
   planExpiresAt: timestamp("plan_expires_at"),
+  // Set when a downgrade leaves the account above its new plan's limits.
+  // Existing resources stay; new ones are blocked until it's cleared.
+  overLimitSince: timestamp("over_limit_since"),
   telegramChatId: text("telegram_chat_id"),
   whatsappPhone: text("whatsapp_phone"),
   discordWebhookUrl: text("discord_webhook_url"),

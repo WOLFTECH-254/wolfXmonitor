@@ -222,6 +222,9 @@ export default function Landing() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          <Link href="/pricing">
+            <button className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2 hidden sm:block">Pricing</button>
+          </Link>
           <Link href="/status">
             <button className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2 hidden sm:block">Status</button>
           </Link>

@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   Radio, LogOut, User, ShieldCheck, AlertTriangle, Crown, LayoutDashboard,
   Globe, ChevronDown, ChevronRight, Activity, Server, Users, CreditCard,
-  Settings, Menu, X, BellRing, BookOpen, UserCircle, Code2,
+  Settings, Menu, X, BellRing, BookOpen, UserCircle, Code2, Layers,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,6 +16,7 @@ const MAIN_NAV: NavEntry[] = [
   { href: "/monitoring", icon: Radio, label: "Monitors", match: (p) => p === "/monitoring" || p.startsWith("/monitors/") },
   { href: "/incidents", icon: AlertTriangle, label: "Incidents" },
   { href: "/settings", icon: BellRing, label: "Integrations & API" },
+  { href: "/workspace", icon: Layers, label: "Workspace" },
 ];
 
 const RESOURCE_NAV: NavEntry[] = [
@@ -30,6 +31,7 @@ const ADMIN_TABS = [
   { id: "monitors", label: "Monitors", Icon: Server },
   { id: "users", label: "Users", Icon: Users },
   { id: "activity", label: "Activity", Icon: Radio },
+  { id: "plans", label: "Plans", Icon: Layers },
   { id: "payments", label: "Payments", Icon: CreditCard },
   { id: "settings", label: "Settings", Icon: Settings },
   { id: "developer", label: "Developer", Icon: Code2 },

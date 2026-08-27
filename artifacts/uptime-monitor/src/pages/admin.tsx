@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation, useSearch } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube, Shield, Ban, AlertTriangle, CheckCheck, MessageCircle, Code2, Plus, Trash } from "lucide-react";
+import { Activity, Users, Server, Trash2, Pause, Play, ShieldCheck, RefreshCw, CheckCircle2, XCircle, Mail, Eye, EyeOff, Send, CreditCard, Settings, Crown, Twitter, Instagram, Facebook, Linkedin, Youtube, Shield, Ban, AlertTriangle, CheckCheck, MessageCircle, Code2, Plus, Trash, Layers } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -40,12 +40,20 @@ interface ActivityEntry { id: number; status: string; responseTimeMs: number | n
 interface EmailSettings { brevoApiKeySet: boolean; brevoApiKeyMasked: string; senderEmail: string; senderName: string; }
 interface BillingSettings { paystackSecretKeySet: boolean; paystackSecretKeyMasked: string; paystackPublicKey: string; paystackCurrency: string; freeMonitorLimit: number; }
 interface PaymentRow { id: number; paystackReference: string; amount: number; currency: string; status: string; plan: string; createdAt: string; userId: number | null; userName: string | null; userEmail: string | null; }
-interface AdminPlan { id: number; slug: string; name: string; durationDays: number; priceUsd: string; monitorLimit: number; isActive: boolean; sortOrder: number; }
+interface AdminPlan {
+  id: number; slug: string; name: string; description: string;
+  priceUsd: string; currency: string; billingInterval: string; durationDays: number;
+  monitorLimit: number; checkIntervalSeconds: number; retentionDays: number;
+  statusPageLimit: number; teamMemberLimit: number;
+  emailAlerts: boolean; webhookAlerts: boolean; telegramAlerts: boolean; sslMonitoring: boolean;
+  isActive: boolean; isFree: boolean; isUnlimited: boolean; isPopular: boolean;
+  sortOrder: number; subscriberCount?: number;
+}
 interface SecurityEvent { id: number; type: string; ip: string; path: string | null; method: string | null; userAgent: string | null; details: string | null; resolved: boolean; createdAt: string; }
 interface BlockedIp { id: number; ip: string; reason: string | null; blockedBy: number | null; createdAt: string; }
 interface SecurityStats { total: number; unresolved: number; blocked: number; byType: Record<string, number>; }
 
-type Tab = "overview" | "monitors" | "users" | "activity" | "payments" | "settings" | "security" | "developer";
+type Tab = "overview" | "monitors" | "users" | "activity" | "plans" | "payments" | "settings" | "security" | "developer";
 
 // ── Developer Profile Settings ────────────────────────────────────────────────
 interface DevProfile { name: string; title: string; bio: string; avatarUrl: string; githubUsername: string; githubUrl: string; twitterUrl: string; linkedinUrl: string; websiteUrl: string; coffeeUrl: string; customLinks: { label: string; url: string }[]; }
@@ -553,118 +561,279 @@ function FooterSection() {
   );
 }
 
-// ── Plans Section ─────────────────────────────────────────────────────────────
-function PlansSection() {
+// ── Plans Manager ────────────────────────────────────────────────────────────
+const fieldCls = "w-full bg-background border border-border rounded px-2.5 py-1.5 font-mono text-xs text-foreground focus:outline-none focus:border-primary transition-colors";
+
+type PlanFormState = {
+  slug: string; name: string; description: string;
+  priceUsd: string; currency: string; billingInterval: string; durationDays: string;
+  monitorLimit: string; checkIntervalSeconds: string; retentionDays: string;
+  statusPageLimit: string; teamMemberLimit: string;
+  emailAlerts: boolean; webhookAlerts: boolean; telegramAlerts: boolean; sslMonitoring: boolean;
+  isActive: boolean; isFree: boolean; isUnlimited: boolean; isPopular: boolean; sortOrder: string;
+};
+
+const EMPTY_PLAN: PlanFormState = {
+  slug: "", name: "", description: "",
+  priceUsd: "0", currency: "USD", billingInterval: "monthly", durationDays: "30",
+  monitorLimit: "-1", checkIntervalSeconds: "300", retentionDays: "30",
+  statusPageLimit: "0", teamMemberLimit: "1",
+  emailAlerts: true, webhookAlerts: false, telegramAlerts: false, sslMonitoring: false,
+  isActive: true, isFree: false, isUnlimited: false, isPopular: false, sortOrder: "0",
+};
+
+function planToForm(p: AdminPlan): PlanFormState {
+  return {
+    slug: p.slug, name: p.name, description: p.description ?? "",
+    priceUsd: parseFloat(p.priceUsd).toFixed(2), currency: p.currency ?? "USD",
+    billingInterval: p.billingInterval ?? "monthly", durationDays: String(p.durationDays),
+    monitorLimit: String(p.monitorLimit), checkIntervalSeconds: String(p.checkIntervalSeconds),
+    retentionDays: String(p.retentionDays), statusPageLimit: String(p.statusPageLimit),
+    teamMemberLimit: String(p.teamMemberLimit),
+    emailAlerts: p.emailAlerts, webhookAlerts: p.webhookAlerts, telegramAlerts: p.telegramAlerts, sslMonitoring: p.sslMonitoring,
+    isActive: p.isActive, isFree: p.isFree, isUnlimited: p.isUnlimited, isPopular: p.isPopular,
+    sortOrder: String(p.sortOrder),
+  };
+}
+
+function formToPayload(f: PlanFormState, includeSlug: boolean) {
+  const p: Record<string, unknown> = {
+    name: f.name.trim(), description: f.description.trim(),
+    priceUsd: Number(f.priceUsd) || 0, currency: f.currency.trim().toUpperCase(),
+    billingInterval: f.billingInterval, durationDays: Number(f.durationDays),
+    monitorLimit: Number(f.monitorLimit), checkIntervalSeconds: Number(f.checkIntervalSeconds),
+    retentionDays: Number(f.retentionDays), statusPageLimit: Number(f.statusPageLimit),
+    teamMemberLimit: Number(f.teamMemberLimit),
+    emailAlerts: f.emailAlerts, webhookAlerts: f.webhookAlerts, telegramAlerts: f.telegramAlerts, sslMonitoring: f.sslMonitoring,
+    isActive: f.isActive, isFree: f.isFree, isUnlimited: f.isUnlimited, isPopular: f.isPopular,
+    sortOrder: Number(f.sortOrder),
+  };
+  if (includeSlug) p.slug = f.slug.trim().toLowerCase();
+  return p;
+}
+
+function PlanToggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  return (
+    <button type="button" onClick={onClick} className="flex items-center gap-2 font-mono text-[11px] text-foreground">
+      <span className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${on ? "bg-primary" : "bg-muted"}`}>
+        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${on ? "translate-x-4" : "translate-x-0.5"}`} />
+      </span>
+      {label}
+    </button>
+  );
+}
+
+function PlanField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</label>
+      {children}
+      {hint && <p className="font-mono text-[10px] text-muted-foreground/70">{hint}</p>}
+    </div>
+  );
+}
+
+function PlanForm({ initial, isNew, editId, onSaved, onCancel }: {
+  initial: PlanFormState; isNew: boolean; editId?: number; onSaved: () => void; onCancel: () => void;
+}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [f, setF] = useState<PlanFormState>(initial);
+  useEffect(() => setF(initial), [initial]);
+  const set = <K extends keyof PlanFormState>(k: K, v: PlanFormState[K]) => setF((p) => ({ ...p, [k]: v }));
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-plans"] });
+    queryClient.invalidateQueries({ queryKey: ["public-plans"] });
+  };
+
+  const save = useMutation({
+    mutationFn: () => isNew
+      ? apiFetch("/api/admin/plans", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(formToPayload(f, true)) })
+      : apiFetch(`/api/admin/plans/${editId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(formToPayload(f, false)) }),
+    onSuccess: () => { invalidate(); toast({ title: isNew ? "Plan created" : `${f.name} saved` }); onSaved(); },
+    onError: (e: unknown) => toast({ variant: "destructive", title: "Save failed", description: e instanceof Error ? e.message : undefined }),
+  });
+
+  return (
+    <div className="border border-primary/25 bg-primary/[0.03] rounded p-4 space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <PlanField label="Slug" hint={isNew ? "lowercase, immutable" : "cannot be changed"}>
+          <input value={f.slug} disabled={!isNew} onChange={(e) => set("slug", e.target.value)} className={`${fieldCls} disabled:opacity-50`} placeholder="pro" />
+        </PlanField>
+        <PlanField label="Name"><input value={f.name} onChange={(e) => set("name", e.target.value)} className={fieldCls} placeholder="Pro" /></PlanField>
+        <PlanField label="Sort order"><input type="number" value={f.sortOrder} onChange={(e) => set("sortOrder", e.target.value)} className={fieldCls} /></PlanField>
+        <div className="col-span-2 sm:col-span-3">
+          <PlanField label="Description"><input value={f.description} onChange={(e) => set("description", e.target.value)} className={fieldCls} placeholder="One line shown on the pricing card" /></PlanField>
+        </div>
+        <PlanField label="Price (USD)" hint="canonical; FX-converted on pricing page"><input type="number" min="0" step="0.01" value={f.priceUsd} onChange={(e) => set("priceUsd", e.target.value)} className={fieldCls} /></PlanField>
+        <PlanField label="Currency"><input value={f.currency} onChange={(e) => set("currency", e.target.value)} className={fieldCls} maxLength={3} /></PlanField>
+        <PlanField label="Billing interval">
+          <select value={f.billingInterval} onChange={(e) => set("billingInterval", e.target.value)} className={fieldCls}>
+            {["monthly", "yearly", "weekly", "quarterly", "biannual"].map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </PlanField>
+        <PlanField label="Duration (days)"><input type="number" min="1" value={f.durationDays} onChange={(e) => set("durationDays", e.target.value)} className={fieldCls} /></PlanField>
+        <PlanField label="Monitor limit" hint="-1 = unlimited"><input type="number" value={f.monitorLimit} onChange={(e) => set("monitorLimit", e.target.value)} className={fieldCls} /></PlanField>
+        <PlanField label="Min check interval (s)"><input type="number" min="10" value={f.checkIntervalSeconds} onChange={(e) => set("checkIntervalSeconds", e.target.value)} className={fieldCls} /></PlanField>
+        <PlanField label="Retention (days)"><input type="number" min="1" value={f.retentionDays} onChange={(e) => set("retentionDays", e.target.value)} className={fieldCls} /></PlanField>
+        <PlanField label="Status page limit" hint="-1 = unlimited, 0 = off"><input type="number" value={f.statusPageLimit} onChange={(e) => set("statusPageLimit", e.target.value)} className={fieldCls} /></PlanField>
+        <PlanField label="Team member limit" hint="-1 = unlimited"><input type="number" value={f.teamMemberLimit} onChange={(e) => set("teamMemberLimit", e.target.value)} className={fieldCls} /></PlanField>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+        <PlanToggle on={f.emailAlerts} onClick={() => set("emailAlerts", !f.emailAlerts)} label="Email alerts" />
+        <PlanToggle on={f.webhookAlerts} onClick={() => set("webhookAlerts", !f.webhookAlerts)} label="Webhook alerts" />
+        <PlanToggle on={f.telegramAlerts} onClick={() => set("telegramAlerts", !f.telegramAlerts)} label="Telegram alerts" />
+        <PlanToggle on={f.sslMonitoring} onClick={() => set("sslMonitoring", !f.sslMonitoring)} label="SSL monitoring" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 border-t border-border pt-3">
+        <PlanToggle on={f.isActive} onClick={() => set("isActive", !f.isActive)} label="Active" />
+        <PlanToggle on={f.isPopular} onClick={() => set("isPopular", !f.isPopular)} label="Popular / recommended" />
+        <PlanToggle on={f.isFree} onClick={() => set("isFree", !f.isFree)} label="Free plan" />
+        <PlanToggle on={f.isUnlimited} onClick={() => set("isUnlimited", !f.isUnlimited)} label="Unlimited plan" />
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <Button onClick={() => save.mutate()} disabled={save.isPending || !f.slug.trim() || !f.name.trim()} className="font-mono text-xs uppercase tracking-widest h-8">
+          {save.isPending ? "Saving…" : isNew ? "Create plan" : "Save changes"}
+        </Button>
+        <button onClick={onCancel} className="font-mono text-xs text-muted-foreground hover:text-foreground px-3">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function PlansManager() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: plans = [], isLoading } = useQuery<AdminPlan[]>({
     queryKey: ["admin-plans"],
     queryFn: () => apiFetch("/api/admin/plans"),
   });
+  const [adding, setAdding] = useState(false);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<AdminPlan | null>(null);
+  const [reassignTo, setReassignTo] = useState("free");
 
-  const [edits, setEdits] = useState<Record<string, { priceUsd: string; isActive: boolean }>>({});
-
-  useEffect(() => {
-    if (plans.length > 0) {
-      const initial: Record<string, { priceUsd: string; isActive: boolean }> = {};
-      plans.forEach((p) => {
-        initial[p.slug] = { priceUsd: parseFloat(p.priceUsd).toFixed(2), isActive: p.isActive };
-      });
-      setEdits(initial);
-    }
-  }, [plans]);
-
-  const savePlan = useMutation({
-    mutationFn: ({ slug, data }: { slug: string; data: { priceUsd: number; isActive: boolean } }) =>
-      apiFetch(`/api/admin/plans/${slug}`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-plans"] });
-      queryClient.invalidateQueries({ queryKey: ["public-plans"] });
-      toast({ title: "Plan updated" });
-    },
-    onError: () => toast({ variant: "destructive", title: "Failed to save plan" }),
-  });
-
-  const DURATION_LABELS: Record<string, string> = {
-    weekly: "7 days", monthly: "30 days", quarterly: "90 days",
-    biannual: "180 days", yearly: "365 days",
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-plans"] });
+    queryClient.invalidateQueries({ queryKey: ["public-plans"] });
   };
 
-  if (isLoading) return <div className="animate-pulse font-mono text-xs text-muted-foreground">Loading plans…</div>;
+  const toggleStatus = useMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      apiFetch(`/api/admin/plans/${id}/status`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ isActive }) }),
+    onSuccess: () => invalidate(),
+  });
+
+  const del = useMutation({
+    mutationFn: ({ id, reassign }: { id: number; reassign?: string }) =>
+      fetch(`${BASE}/api/admin/plans/${id}${reassign ? `?reassignTo=${reassign}` : ""}`, { method: "DELETE", credentials: "include" }).then(async (r) => {
+        const b = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(b.error ?? "Delete failed");
+        return b;
+      }),
+    onSuccess: () => { invalidate(); toast({ title: "Plan deleted" }); setConfirmDelete(null); },
+    onError: (e: unknown) => toast({ variant: "destructive", title: "Delete failed", description: e instanceof Error ? e.message : undefined }),
+  });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">Plan Configuration</h3>
-        <span className="font-mono text-[10px] text-muted-foreground">Prices in USD · auto-converted per user's country</span>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="font-display text-2xl uppercase tracking-wide text-foreground">Plans</h3>
+          <p className="font-mono text-[10px] text-muted-foreground mt-1">
+            The database is the source of truth. Edits show on the pricing page immediately. −1 means unlimited.
+          </p>
+        </div>
+        <Button onClick={() => { setAdding((a) => !a); setEditingSlug(null); }} className="font-mono text-xs uppercase tracking-widest h-8">
+          <Plus className="w-3.5 h-3.5 mr-1.5" /> New plan
+        </Button>
       </div>
-      <div className="border border-border rounded overflow-hidden">
-        <table className="w-full text-xs font-mono">
-          <thead>
-            <tr className="border-b border-border bg-muted/10">
-              {["Plan", "Duration", "Price (USD)", "Monitor Limit", "Active", ""].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-widest text-muted-foreground font-normal">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {plans.map((plan) => {
-              const edit = edits[plan.slug] ?? { priceUsd: parseFloat(plan.priceUsd).toFixed(2), isActive: plan.isActive };
-              return (
-                <tr key={plan.slug} className="hover:bg-white/[0.02]">
-                  <td className="px-4 py-3">
-                    <div className="font-bold text-foreground">{plan.name}</div>
-                    <div className="text-muted-foreground text-[10px] uppercase tracking-widest">{plan.slug}</div>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{DURATION_LABELS[plan.slug] ?? `${plan.durationDays}d`}</td>
-                  <td className="px-4 py-3">
-                    <div className="relative w-28">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={edit.priceUsd}
-                        onChange={(e) => setEdits((prev) => ({ ...prev, [plan.slug]: { ...edit, priceUsd: e.target.value } }))}
-                        className="w-full bg-background border border-border rounded px-2.5 py-1.5 pl-6 font-mono text-xs text-foreground focus:outline-none focus:border-primary transition-colors"
-                      />
+
+      {adding && <PlanForm initial={EMPTY_PLAN} isNew onSaved={() => setAdding(false)} onCancel={() => setAdding(false)} />}
+
+      {isLoading ? (
+        <div className="animate-pulse font-mono text-xs text-muted-foreground">Loading plans…</div>
+      ) : plans.length === 0 ? (
+        <div className="border border-dashed border-border rounded p-8 text-center">
+          <Layers className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="font-mono text-xs text-muted-foreground">No plans yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {[...plans].sort((a, b) => a.sortOrder - b.sortOrder).map((p) => (
+            <div key={p.slug} className="border border-border rounded">
+              <div className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${p.isActive ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                  <div className="min-w-0">
+                    <div className="font-mono text-sm text-foreground font-bold flex items-center gap-2">
+                      {p.name}
+                      {p.isPopular && <span className="font-mono text-[9px] uppercase tracking-wider text-primary border border-primary/30 rounded px-1">Popular</span>}
+                      {p.isFree && <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground border border-border rounded px-1">Free</span>}
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-primary font-bold">{plan.monitorLimit === -1 ? "Unlimited" : plan.monitorLimit}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => setEdits((prev) => ({ ...prev, [plan.slug]: { ...edit, isActive: !edit.isActive } }))}
-                      className={`relative w-10 h-5 rounded-full transition-colors ${edit.isActive ? "bg-primary" : "bg-muted"}`}
-                    >
-                      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${edit.isActive ? "translate-x-5" : "translate-x-0.5"}`} />
+                    <div className="font-mono text-[10px] text-muted-foreground">
+                      {p.slug} · ${parseFloat(p.priceUsd).toFixed(2)} · {p.monitorLimit < 0 ? "∞" : p.monitorLimit} mon · {p.checkIntervalSeconds}s · {p.retentionDays}d · {p.subscriberCount ?? 0} subs
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => toggleStatus.mutate({ id: p.id, isActive: !p.isActive })}
+                    className="font-mono text-[10px] h-7 px-2 rounded border border-border text-muted-foreground hover:text-foreground">
+                    {p.isActive ? "Disable" : "Enable"}
+                  </button>
+                  <button onClick={() => { setEditingSlug(editingSlug === p.slug ? null : p.slug); setAdding(false); }}
+                    className="font-mono text-[10px] h-7 px-3 rounded border border-primary/40 text-primary hover:bg-primary/10">
+                    {editingSlug === p.slug ? "Close" : "Edit"}
+                  </button>
+                  {!p.isFree && (
+                    <button onClick={() => { setConfirmDelete(p); setReassignTo("free"); }} title="Delete plan"
+                      className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button
-                      size="sm"
-                      onClick={() => savePlan.mutate({ slug: plan.slug, data: { priceUsd: parseFloat(edit.priceUsd) || 0, isActive: edit.isActive } })}
-                      disabled={savePlan.isPending}
-                      className="font-mono text-[10px] h-7 px-3"
-                    >
-                      Save
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="font-mono text-[10px] text-muted-foreground">
-        * Prices are converted to the user's local currency (NGN, KES, GHS, ZAR, etc.) at live exchange rates when the user loads the upgrade page.
-      </p>
+                  )}
+                </div>
+              </div>
+              {editingSlug === p.slug && (
+                <div className="border-t border-border p-4">
+                  <PlanForm initial={planToForm(p)} isNew={false} editId={p.id} onSaved={() => setEditingSlug(null)} onCancel={() => setEditingSlug(null)} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-sm mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h4 className="font-display text-xl text-foreground">Delete &ldquo;{confirmDelete.name}&rdquo;?</h4>
+            {(confirmDelete.subscriberCount ?? 0) > 0 ? (
+              <>
+                <p className="font-mono text-xs text-muted-foreground">
+                  {confirmDelete.subscriberCount} account(s) are on this plan. They&rsquo;ll be moved to:
+                </p>
+                <select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} className={fieldCls}>
+                  {plans.filter((x) => x.id !== confirmDelete.id).map((x) => <option key={x.slug} value={x.slug}>{x.name} ({x.slug})</option>)}
+                </select>
+              </>
+            ) : (
+              <p className="font-mono text-xs text-muted-foreground">No accounts are on this plan. This cannot be undone.</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmDelete(null)} className="font-mono text-xs text-muted-foreground hover:text-foreground px-3">Cancel</button>
+              <Button
+                onClick={() => del.mutate({ id: confirmDelete.id, reassign: (confirmDelete.subscriberCount ?? 0) > 0 ? reassignTo : undefined })}
+                disabled={del.isPending}
+                className="font-mono text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8">
+                {del.isPending ? "Deleting…" : "Delete plan"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -901,6 +1070,7 @@ export default function Admin() {
   const { data: monitors = [], isLoading: loadingMonitors } = useQuery<AdminMonitor[]>({ queryKey: ["admin-monitors"], queryFn: () => apiFetch("/api/admin/monitors"), refetchInterval: 15000 });
   const { data: activity = [], isLoading: loadingActivity } = useQuery<ActivityEntry[]>({ queryKey: ["admin-activity"], queryFn: () => apiFetch("/api/admin/activity"), refetchInterval: 10000, enabled: tab === "activity" });
   const { data: payments = [], isLoading: loadingPayments } = useQuery<PaymentRow[]>({ queryKey: ["admin-payments"], queryFn: () => apiFetch("/api/admin/payments"), refetchInterval: 30000, enabled: tab === "payments" });
+  const { data: plans = [] } = useQuery<AdminPlan[]>({ queryKey: ["admin-plans"], queryFn: () => apiFetch("/api/admin/plans") });
   const { data: securityEvents = [], isLoading: loadingSecEvents } = useQuery<SecurityEvent[]>({ queryKey: ["admin-security-events"], queryFn: () => apiFetch("/api/admin/security/events"), refetchInterval: 15000, enabled: tab === "security" });
   const { data: blockedIps = [], isLoading: loadingBlockedIps } = useQuery<BlockedIp[]>({ queryKey: ["admin-blocked-ips"], queryFn: () => apiFetch("/api/admin/security/blocked-ips"), refetchInterval: 15000, enabled: tab === "security" });
   const { data: secStats } = useQuery<SecurityStats>({ queryKey: ["admin-security-stats"], queryFn: () => apiFetch("/api/admin/security/stats"), refetchInterval: 20000 });
@@ -947,6 +1117,7 @@ export default function Admin() {
     { id: "monitors", label: `Monitors (${monitors.length})`, icon: Server },
     { id: "users", label: `Users (${users.length})`, icon: Users },
     { id: "activity", label: "Activity", icon: RefreshCw },
+    { id: "plans", label: `Plans (${plans.length})`, icon: Layers },
     { id: "payments", label: "Payments", icon: CreditCard },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "security", label: `Security${secStats?.unresolved ? ` (${secStats.unresolved})` : ""}`, icon: Shield, alert: (secStats?.unresolved ?? 0) > 0 },
@@ -1121,12 +1292,18 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Plans tab */}
+        {tab === "plans" && (
+          <div className="max-w-4xl">
+            <div className="border border-border bg-card rounded p-6">
+              <PlansManager />
+            </div>
+          </div>
+        )}
+
         {/* Payments tab */}
         {tab === "payments" && (
           <div className="space-y-8">
-            <div className="border border-border bg-card rounded p-6">
-              <PlansSection />
-            </div>
             <div className="border border-border bg-card rounded overflow-hidden">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                 <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground">Recent Payments</h3>

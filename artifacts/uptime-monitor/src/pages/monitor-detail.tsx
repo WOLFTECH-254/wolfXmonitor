@@ -16,10 +16,11 @@ import {
 import { useParams, useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw, Pause, Play, Trash2, ExternalLink, Globe, Pencil } from "lucide-react";
+import { ArrowLeft, RefreshCw, Pause, Play, Trash2, ExternalLink, Globe, Pencil, ShieldCheck, Lock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, formatDistanceToNow, formatDuration, intervalToDuration } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip,
 } from "recharts";
@@ -65,12 +66,23 @@ function UptimeStat({
   );
 }
 
+interface SslInfo {
+  sslCheckEnabled?: boolean;
+  sslStatus?: string | null;
+  sslExpiresAt?: string | null;
+  sslDaysRemaining?: number | null;
+  sslIssuer?: string | null;
+  sslLastCheckedAt?: string | null;
+}
+
 export default function MonitorDetail() {
   const { id: idStr } = useParams();
   const id = Number(idStr);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const sslAvailable = !!user?.planLimits?.sslMonitoring;
 
   const { data: monitor, isLoading: isLoadingMonitor } = useGetMonitor(id, {
     query: { enabled: !!id, refetchInterval: 30000 }
@@ -144,6 +156,25 @@ export default function MonitorDetail() {
         toast({ title: "Monitor updated", description: `Monitor is now ${!monitor.active ? "active" : "paused"}.` });
       }
     });
+  };
+
+  const ssl = monitor as unknown as SslInfo;
+
+  const handleToggleSsl = () => {
+    if (!monitor) return;
+    updateMonitor.mutate(
+      { id, data: { sslCheckEnabled: !ssl.sslCheckEnabled } as never },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetMonitorQueryKey(id) });
+          toast({ title: ssl.sslCheckEnabled ? "SSL monitoring off" : "SSL monitoring on", description: ssl.sslCheckEnabled ? undefined : "First certificate check runs within a few minutes." });
+        },
+        onError: (err: unknown) => {
+          const body = (err as { data?: { error?: string } }).data;
+          toast({ variant: "destructive", title: "Could not update", description: body?.error ?? "Failed to toggle SSL monitoring." });
+        },
+      },
+    );
   };
 
   if (isLoadingMonitor || !monitor) {
@@ -373,6 +404,71 @@ export default function MonitorDetail() {
           </div>
         )}
 
+        {/* SSL certificate */}
+        {(ssl.sslCheckEnabled || sslAvailable) && (
+          <div className="border border-border bg-card rounded p-5">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className={`w-5 h-5 mt-0.5 shrink-0 ${
+                  ssl.sslStatus === "valid" ? "text-primary"
+                  : ssl.sslStatus === "expiring" ? "text-yellow-400"
+                  : ssl.sslStatus === "expired" || ssl.sslStatus === "error" ? "text-destructive"
+                  : "text-muted-foreground"
+                }`} />
+                <div>
+                  <h3 className="font-display text-base uppercase tracking-wide text-muted-foreground">SSL Certificate</h3>
+                  {!ssl.sslCheckEnabled ? (
+                    <p className="font-mono text-xs text-muted-foreground mt-1">Not monitored for this endpoint.</p>
+                  ) : !ssl.sslLastCheckedAt ? (
+                    <p className="font-mono text-xs text-muted-foreground mt-1">Awaiting first certificate check…</p>
+                  ) : (
+                    <div className="font-mono text-xs text-muted-foreground mt-1 space-y-0.5">
+                      <div>
+                        Status:{" "}
+                        <span className={
+                          ssl.sslStatus === "valid" ? "text-primary"
+                          : ssl.sslStatus === "expiring" ? "text-yellow-400"
+                          : "text-destructive"
+                        }>
+                          {ssl.sslStatus === "valid" ? "Valid"
+                            : ssl.sslStatus === "expiring" ? "Expiring soon"
+                            : ssl.sslStatus === "expired" ? "Expired"
+                            : "Check error"}
+                        </span>
+                      </div>
+                      {typeof ssl.sslDaysRemaining === "number" && (
+                        <div>{ssl.sslDaysRemaining} day{ssl.sslDaysRemaining === 1 ? "" : "s"} until expiry</div>
+                      )}
+                      {ssl.sslExpiresAt && <div>Expires {format(new Date(ssl.sslExpiresAt), "MMM d, yyyy")}</div>}
+                      {ssl.sslIssuer && <div>Issuer: {ssl.sslIssuer}</div>}
+                      {ssl.sslLastCheckedAt && (
+                        <div className="text-muted-foreground/60">Checked {formatDistanceToNow(new Date(ssl.sslLastCheckedAt), { addSuffix: true })}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {sslAvailable ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-mono text-xs border-border bg-card hover:border-primary/50 h-8"
+                  onClick={handleToggleSsl}
+                  disabled={updateMonitor.isPending}
+                >
+                  {ssl.sslCheckEnabled ? "Disable" : "Enable"}
+                </Button>
+              ) : (
+                <Link href="/upgrade">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-primary hover:underline">
+                    <Lock className="w-3 h-3" /> Upgrade to monitor SSL
+                  </span>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Response time chart */}
         <div className="border border-border bg-card rounded p-5">
           <h3 className="font-display text-base uppercase tracking-wide text-muted-foreground mb-4">
@@ -485,9 +581,11 @@ export default function MonitorDetail() {
                 value={editInterval}
                 onChange={e => setEditInterval(Number(e.target.value))}
               >
-                {[1, 2, 3, 5, 10, 15, 30, 60].map(v => (
-                  <option key={v} value={v}>Every {v} minute{v !== 1 ? "s" : ""}</option>
-                ))}
+                {[1, 2, 3, 5, 10, 15, 30, 60]
+                  .filter(v => v * 60 >= (user?.planLimits?.checkIntervalSeconds ?? 60) || v === monitor.intervalMinutes)
+                  .map(v => (
+                    <option key={v} value={v}>Every {v} minute{v !== 1 ? "s" : ""}</option>
+                  ))}
               </select>
             </div>
           </div>

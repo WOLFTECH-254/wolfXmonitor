@@ -2,9 +2,10 @@ import { Router } from "express";
 import crypto from "node:crypto";
 import axios from "axios";
 import { db, paymentsTable, settingsTable, usersTable, plansTable } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { sendPaymentConfirmEmail } from "../lib/mailer";
+import { recomputeOverLimit } from "../lib/plan-enforcement";
 
 const router = Router();
 
@@ -34,16 +35,7 @@ async function getExchangeRates(): Promise<Record<string, number>> {
   }
 }
 
-// ── Public: list active plans ────────────────────────────────────────────────
-
-router.get("/plans", async (_req, res) => {
-  const plans = await db
-    .select()
-    .from(plansTable)
-    .where(eq(plansTable.isActive, true))
-    .orderBy(asc(plansTable.sortOrder));
-  res.json(plans);
-});
+// Active-plan listing lives in routes/plans.ts now.
 
 // ── Config for upgrade page ──────────────────────────────────────────────────
 
@@ -97,17 +89,17 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
     }).data;
 
     if (data.status === "success") {
-      // Extract plan slug from reference (format: wxm_<slug>_<timestamp>_<userId>)
-      // Fall back to metadata if present (future-proofing), then default to monthly
+      // Extract plan slug from reference (format: wxm_<slug>_<timestamp>_<userId>),
+      // preferring Paystack metadata. Validate against the plans table so any
+      // admin-created slug works.
       const refParts = reference.split("_");
       const slugFromRef = refParts.length >= 2 ? refParts[1] : null;
-      const validSlugs = ["weekly", "monthly", "quarterly", "biannual", "yearly"];
-      const planSlug = data.metadata?.planSlug
-        ?? (slugFromRef && validSlugs.includes(slugFromRef) ? slugFromRef : null)
-        ?? "monthly";
-
-      // Look up the plan to get duration
-      const [plan] = await db.select().from(plansTable).where(eq(plansTable.slug, planSlug));
+      const candidate = data.metadata?.planSlug ?? slugFromRef ?? "pro";
+      const [matched] = await db.select().from(plansTable).where(eq(plansTable.slug, candidate));
+      const plan = matched
+        ?? (await db.select().from(plansTable).where(eq(plansTable.slug, "pro")))[0]
+        ?? (await db.select().from(plansTable).where(eq(plansTable.isActive, true)).orderBy(desc(plansTable.priceUsd)))[0];
+      const planSlug = plan?.slug ?? "pro";
       const durationDays = plan?.durationDays ?? 30;
 
       const now = new Date();
@@ -128,10 +120,18 @@ router.get("/payments/verify/:reference", requireAuth, async (req, res) => {
         });
       }
 
-      // Update user
+      // Update user's subscription
       await db.update(usersTable)
-        .set({ plan: "pro", planSlug, planExpiresAt })
+        .set({
+          plan: plan?.isFree ? "free" : "pro",
+          planSlug,
+          subscriptionStatus: "active",
+          subscriptionStartedAt: now,
+          planExpiresAt,
+          overLimitSince: null, // an upgrade always clears the over-limit gate
+        })
         .where(eq(usersTable.id, req.session.userId!));
+      await recomputeOverLimit(req.session.userId!);
 
       // Send payment confirmation email (fire-and-forget)
       const [updatedUser] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
@@ -193,7 +193,7 @@ router.post("/payments/webhook", async (req, res) => {
 
   if (event.event === "charge.success" && event.data?.reference) {
     const { reference, metadata, amount, currency } = event.data;
-    const planSlug = metadata?.planSlug ?? "monthly";
+    const planSlug = metadata?.planSlug ?? "pro";
 
     const [plan] = await db.select().from(plansTable).where(eq(plansTable.slug, planSlug));
     const durationDays = plan?.durationDays ?? 30;
@@ -215,8 +215,16 @@ router.post("/payments/webhook", async (req, res) => {
 
     if (metadata?.userId) {
       await db.update(usersTable)
-        .set({ plan: "pro", planSlug, planExpiresAt })
+        .set({
+          plan: plan?.isFree ? "free" : "pro",
+          planSlug,
+          subscriptionStatus: "active",
+          subscriptionStartedAt: new Date(),
+          planExpiresAt,
+          overLimitSince: null,
+        })
         .where(eq(usersTable.id, metadata.userId));
+      await recomputeOverLimit(metadata.userId);
 
       // Send payment confirmation email (fire-and-forget)
       const [webhookUser] = await db.select().from(usersTable).where(eq(usersTable.id, metadata.userId));

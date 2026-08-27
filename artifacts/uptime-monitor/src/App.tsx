@@ -20,6 +20,8 @@ import Docs from "@/pages/docs";
 import Profile from "@/pages/profile";
 import Privacy from "@/pages/privacy";
 import Developer from "@/pages/developer";
+import Pricing from "@/pages/pricing";
+import Workspace from "@/pages/workspace";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient({
@@ -88,7 +90,11 @@ function Router() {
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} />}
       </Route>
+      <Route path="/workspace">
+        {() => <ProtectedRoute component={Workspace} />}
+      </Route>
       <Route path="/docs" component={Docs} />
+      <Route path="/pricing" component={Pricing} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/developer" component={Developer} />
       <Route path="/profile">

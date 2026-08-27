@@ -4,6 +4,8 @@ import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq, count } from "drizzle-orm";
 import { recordSecurityEvent, clientIp } from "../lib/security-log";
+import { resolvePlan } from "../lib/plans";
+import { planEntitlements, featureEnabled } from "../lib/plan-enforcement";
 import { sendSignupWelcomeEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
 import {
@@ -175,7 +177,16 @@ router.get("/auth/me", async (req, res) => {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  res.json(safeUser(user));
+  const plan = await resolvePlan(user);
+  res.json({
+    ...safeUser(user), // includes legacy `plan: "free" | "pro"`
+    planSlug: plan.slug,
+    planName: plan.name,
+    subscriptionStatus: user.subscriptionStatus,
+    planExpiresAt: user.planExpiresAt ?? null,
+    overLimit: !!user.overLimitSince,
+    planLimits: planEntitlements(plan),
+  });
 });
 
 // ── Profile update ───────────────────────────────────────────────────────────
@@ -259,10 +270,27 @@ router.put("/me/channels", async (req, res) => {
     whatsappPhone?: string;
     discordWebhookUrl?: string;
   };
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId));
+  const plan = await resolvePlan(user);
+
+  const setTelegram = telegramChatId?.trim() || null;
+  const setDiscord = discordWebhookUrl?.trim() || null;
+
+  // Enforce feature availability server-side. Clearing a channel is always allowed.
+  if (setTelegram && !featureEnabled(plan, "telegram")) {
+    res.status(403).json({ error: `Telegram alerts are not included in the ${plan.name} plan. Upgrade to enable them.`, upgrade: true, feature: "telegram" });
+    return;
+  }
+  if (setDiscord && !featureEnabled(plan, "webhook")) {
+    res.status(403).json({ error: `Webhook / Discord alerts are not included in the ${plan.name} plan. Upgrade to enable them.`, upgrade: true, feature: "webhook" });
+    return;
+  }
+
   await db.update(usersTable).set({
-    telegramChatId: telegramChatId?.trim() || null,
+    telegramChatId: setTelegram,
     whatsappPhone: whatsappPhone?.trim() || null,
-    discordWebhookUrl: discordWebhookUrl?.trim() || null,
+    discordWebhookUrl: setDiscord,
   }).where(eq(usersTable.id, req.session.userId));
   logger.info({ userId: req.session.userId }, "Notification channels updated");
   res.json({ ok: true });

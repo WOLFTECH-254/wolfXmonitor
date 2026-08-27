@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, monitorsTable, pingsTable, usersTable, settingsTable } from "@workspace/db";
+import { db, monitorsTable, pingsTable, usersTable } from "@workspace/db";
 import { eq, desc, count, and, gte, sql } from "drizzle-orm";
 import {
   CreateMonitorBody,
@@ -13,12 +13,28 @@ import {
   TriggerPingParams,
 } from "@workspace/api-zod";
 import { pingUrl } from "../lib/pinger";
-import { scheduleMonitor, unscheduleMonitor } from "../lib/scheduler";
 import { requireAuth } from "../middlewares/auth";
 import { sendDownAlert, sendWelcomeAlert, sendDeleteAlert } from "../lib/mailer";
 import { sendTelegramMessage, sendWhatsAppMessage, sendDiscordAlert, buildDownMessage, buildDownMessagePlain } from "../lib/notifier";
+import { resolvePlan } from "../lib/plans";
+import { assertCanCreateMonitor, assertIntervalAllowed, assertFeatureAllowed, recomputeOverLimit, PlanError } from "../lib/plan-enforcement";
+import type { Response } from "express";
 
 const router = Router();
+
+function sendPlanError(err: unknown, res: Response): boolean {
+  if (err instanceof PlanError) {
+    res.status(err.status).json({ error: err.message, limitReached: true, upgrade: true, feature: err.feature });
+    return true;
+  }
+  return false;
+}
+
+function requestedIntervalSeconds(body: { checkIntervalSeconds?: unknown; intervalMinutes?: unknown }, fallback: number): number {
+  if (typeof body.checkIntervalSeconds === "number" && body.checkIntervalSeconds > 0) return body.checkIntervalSeconds;
+  if (typeof body.intervalMinutes === "number" && body.intervalMinutes > 0) return Math.round(body.intervalMinutes * 60);
+  return fallback;
+}
 
 router.get("/monitors", requireAuth, async (req, res) => {
   const monitors = await db
@@ -31,31 +47,31 @@ router.get("/monitors", requireAuth, async (req, res) => {
 
 router.post("/monitors", requireAuth, async (req, res) => {
   const body = CreateMonitorBody.parse(req.body);
+  const userId = req.session.userId!;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
-  if (user?.plan !== "pro") {
-    const settings = await db.select().from(settingsTable);
-    const freeLimit = Number(settings.find(s => s.key === "free_monitor_limit")?.value ?? "5");
-    const [{ total }] = await db.select({ total: count() }).from(monitorsTable).where(eq(monitorsTable.userId, req.session.userId!));
-    if (Number(total) >= freeLimit) {
-      res.status(403).json({ error: `Free plan limit reached (${freeLimit} monitors). Upgrade to Pro for unlimited monitors.`, limitReached: true });
-      return;
-    }
+  let checkIntervalSeconds = 300;
+  try {
+    const plan = await assertCanCreateMonitor(userId);
+    checkIntervalSeconds = assertIntervalAllowed(plan, requestedIntervalSeconds(req.body, plan.checkIntervalSeconds));
+    if (req.body?.sslCheckEnabled === true) assertFeatureAllowed(plan, "ssl");
+  } catch (err) {
+    if (sendPlanError(err, res)) return;
+    throw err;
   }
 
   const [monitor] = await db
     .insert(monitorsTable)
     .values({
-      userId: req.session.userId!,
+      userId,
       name: body.name,
       url: body.url,
-      intervalMinutes: body.intervalMinutes ?? 5,
+      checkIntervalSeconds,
+      intervalMinutes: Math.max(1, Math.round(checkIntervalSeconds / 60)),
       active: body.active ?? true,
+      sslCheckEnabled: req.body?.sslCheckEnabled === true,
     })
     .returning();
-  if (monitor.active) {
-    scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes, true);
-  }
 
   if (user?.notificationsEnabled) {
     const emailTo = user.notificationEmail ?? user.email;
@@ -64,7 +80,6 @@ router.post("/monitors", requireAuth, async (req, res) => {
       toName: user.name,
       monitorName: monitor.name,
       monitorUrl: monitor.url,
-      intervalMinutes: monitor.intervalMinutes,
     }).catch(() => {});
   }
 
@@ -87,26 +102,44 @@ router.get("/monitors/:id", requireAuth, async (req, res) => {
 router.put("/monitors/:id", requireAuth, async (req, res) => {
   const { id } = UpdateMonitorParams.parse({ id: Number(req.params.id) });
   const body = UpdateMonitorBody.parse(req.body);
+  const userId = req.session.userId!;
+
+  const [existing] = await db
+    .select()
+    .from(monitorsTable)
+    .where(and(eq(monitorsTable.id, id), eq(monitorsTable.userId, userId)));
+  if (!existing) { res.status(404).json({ error: "Monitor not found" }); return; }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  const plan = await resolvePlan(user);
+
   const updates: Partial<typeof monitorsTable.$inferInsert> = {};
   if (body.name !== undefined) updates.name = body.name;
   if (body.url !== undefined) updates.url = body.url;
-  if (body.intervalMinutes !== undefined) updates.intervalMinutes = body.intervalMinutes;
   if (body.active !== undefined) updates.active = body.active;
+
+  const intervalGiven =
+    (typeof req.body?.checkIntervalSeconds === "number") || (body.intervalMinutes !== undefined);
+  try {
+    if (intervalGiven) {
+      const seconds = assertIntervalAllowed(plan, requestedIntervalSeconds(req.body, existing.checkIntervalSeconds));
+      updates.checkIntervalSeconds = seconds;
+      updates.intervalMinutes = Math.max(1, Math.round(seconds / 60));
+    }
+    if (req.body?.sslCheckEnabled === true && !existing.sslCheckEnabled) {
+      assertFeatureAllowed(plan, "ssl");
+    }
+  } catch (err) {
+    if (sendPlanError(err, res)) return;
+    throw err;
+  }
+  if (typeof req.body?.sslCheckEnabled === "boolean") updates.sslCheckEnabled = req.body.sslCheckEnabled;
 
   const [monitor] = await db
     .update(monitorsTable)
     .set(updates)
-    .where(and(eq(monitorsTable.id, id), eq(monitorsTable.userId, req.session.userId!)))
+    .where(and(eq(monitorsTable.id, id), eq(monitorsTable.userId, userId)))
     .returning();
-  if (!monitor) {
-    res.status(404).json({ error: "Monitor not found" });
-    return;
-  }
-  if (monitor.active) {
-    scheduleMonitor(monitor.id, monitor.url, monitor.intervalMinutes);
-  } else {
-    unscheduleMonitor(monitor.id);
-  }
   res.json(monitor);
 });
 
@@ -120,8 +153,9 @@ router.delete("/monitors/:id", requireAuth, async (req, res) => {
     res.status(404).json({ error: "Monitor not found" });
     return;
   }
-  unscheduleMonitor(id);
   await db.delete(monitorsTable).where(eq(monitorsTable.id, id));
+  // Removing a monitor may bring an over-limit account back into compliance.
+  if (monitor.userId) await recomputeOverLimit(monitor.userId).catch(() => {});
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, monitor.userId!));
   if (user?.notificationsEnabled) {

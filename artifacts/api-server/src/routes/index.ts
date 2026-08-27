@@ -5,7 +5,10 @@ import authRouter from "./auth";
 import oauthRouter from "./oauth";
 import adminRouter from "./admin";
 import paymentsRouter from "./payments";
+import plansRouter from "./plans";
 import statusRouter from "./status";
+import statusPagesRouter from "./status-pages";
+import teamsRouter from "./teams";
 import incidentsRouter from "./incidents";
 import securityRouter from "./security";
 
@@ -16,8 +19,11 @@ router.use(oauthRouter);
 router.use(healthRouter);
 router.use(monitorsRouter);
 router.use(adminRouter);
+router.use(plansRouter);
 router.use(paymentsRouter);
 router.use(statusRouter);
+router.use(statusPagesRouter);
+router.use(teamsRouter);
 router.use(incidentsRouter);
 router.use(securityRouter);
 
