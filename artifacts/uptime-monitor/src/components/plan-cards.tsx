@@ -32,6 +32,14 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$", NGN: "₦", KES: "KSh", GHS: "GH₵", ZAR: "R", GBP: "£", EUR: "€", CAD: "CA$", AUD: "A$",
 };
 
+const BILLING_LABELS: Record<string, string> = {
+  monthly: "month", yearly: "year", weekly: "week", daily: "day", quarterly: "quarter",
+};
+
+function billingLabel(interval: string): string {
+  return BILLING_LABELS[interval] ?? interval.replace(/ly$/, "");
+}
+
 function formatPrice(usd: number, currency = "USD", rate = 1): string {
   if (usd === 0) return currency === "USD" ? "$0" : `${CURRENCY_SYMBOLS[currency] ?? ""}0`;
   const sym = CURRENCY_SYMBOLS[currency] ?? `${currency} `;
@@ -88,7 +96,7 @@ export function PlanCards({
             <div className="mt-3 flex items-baseline gap-1">
               <span className="font-display text-3xl text-foreground">{formatPrice(p.priceUsd, currency, rate)}</span>
               <span className="font-mono text-xs text-muted-foreground">
-                {billingSuffix ?? `/ ${p.billingInterval.replace("ly", p.billingInterval === "monthly" ? "month" : "")}`}
+                {billingSuffix ?? `/ ${billingLabel(p.billingInterval)}`}
               </span>
             </div>
 
