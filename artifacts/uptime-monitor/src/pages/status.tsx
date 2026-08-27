@@ -1,7 +1,8 @@
+import { BrandMark } from "@/components/brand-mark";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Zap, CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Footer } from "@/components/footer";
 
@@ -42,7 +43,7 @@ export default function StatusPage() {
       <nav className="border-b border-border px-6 md:px-12 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary" />
+            <BrandMark className="w-4 h-4 text-primary" />
           </div>
           <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
         </Link>

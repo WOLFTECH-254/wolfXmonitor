@@ -1,7 +1,8 @@
+import { BrandMark } from "@/components/brand-mark";
 import { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { Zap, ExternalLink, ChevronRight, Menu, X } from "lucide-react";
+import { ExternalLink, ChevronRight, Menu, X } from "lucide-react";
 
 const sections = [
   { id: "overview",      label: "Overview" },
@@ -135,7 +136,7 @@ export default function Docs() {
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-primary" />
+              <BrandMark className="w-3.5 h-3.5 text-primary" />
             </div>
             <span className="font-display text-lg tracking-wide">
               Guardi<span className="text-primary">X</span>

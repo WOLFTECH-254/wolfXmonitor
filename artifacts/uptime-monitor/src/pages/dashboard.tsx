@@ -74,7 +74,7 @@ export default function Dashboard() {
               Live view of all monitored endpoints.
             </p>
           </div>
-          <Link href="/monitors/new">
+          <Link href="/monitoring?new=1">
             <button className="flex items-center gap-2 font-mono text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all px-5 py-2.5 rounded font-bold tracking-wider group">
               Add Endpoint
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -95,18 +95,20 @@ export default function Dashboard() {
         ) : summary ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: "Total Endpoints", value: summary.totalMonitors, icon: Server, color: "text-foreground" },
-              { label: "Online", value: summary.monitorsUp, icon: CheckCircle2, color: "text-primary" },
-              { label: "Offline", value: summary.monitorsDown, icon: XCircle, color: "text-destructive" },
-              { label: "Global Uptime", value: `${summary.overallUptimePercent.toFixed(1)}%`, icon: Activity, color: "text-foreground" },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="border border-border bg-card rounded p-5 card-hover">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">{label}</span>
-                  <Icon className={`w-4 h-4 ${color} opacity-60`} />
+              { label: "Total Endpoints", value: summary.totalMonitors, icon: Server, color: "text-foreground", href: "/monitoring" },
+              { label: "Online", value: summary.monitorsUp, icon: CheckCircle2, color: "text-primary", href: "/monitoring" },
+              { label: "Offline", value: summary.monitorsDown, icon: XCircle, color: "text-destructive", href: "/monitoring" },
+              { label: "Global Uptime", value: `${summary.overallUptimePercent.toFixed(1)}%`, icon: Activity, color: "text-foreground", href: "/monitoring" },
+            ].map(({ label, value, icon: Icon, color, href }) => (
+              <Link key={label} href={href}>
+                <div className="border border-border bg-card rounded p-5 card-hover cursor-pointer hover:border-primary/40 transition-colors h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">{label}</span>
+                    <Icon className={`w-4 h-4 ${color} opacity-60`} />
+                  </div>
+                  <div className={`font-display text-5xl leading-none ${color}`}>{value}</div>
                 </div>
-                <div className={`font-display text-5xl leading-none ${color}`}>{value}</div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : null}
@@ -132,7 +134,7 @@ export default function Dashboard() {
               <Server className="w-10 h-10 text-muted-foreground mx-auto mb-4 opacity-40" />
               <h3 className="font-display text-2xl text-foreground mb-2 uppercase tracking-wide">No Monitors Yet</h3>
               <p className="text-sm font-mono text-muted-foreground mb-6">Add your first endpoint to start tracking uptime.</p>
-              <Link href="/monitors/new">
+              <Link href="/monitoring?new=1">
                 <button className="font-mono text-sm border border-primary/50 text-primary hover:bg-primary/10 transition-colors px-5 py-2 rounded tracking-wider">
                   Create Monitor
                 </button>

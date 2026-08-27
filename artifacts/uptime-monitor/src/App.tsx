@@ -1,12 +1,11 @@
 import { useEffect } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
-import MonitorNew from "@/pages/monitor-new";
 import MonitorDetail from "@/pages/monitor-detail";
 import SignIn from "@/pages/signin";
 import SignUp from "@/pages/signup";
@@ -70,7 +69,7 @@ function Router() {
         {() => <ProtectedRoute component={Monitoring} />}
       </Route>
       <Route path="/monitors/new">
-        {() => <ProtectedRoute component={MonitorNew} />}
+        <Redirect to="/monitoring?new=1" />
       </Route>
       <Route path="/monitors/:id">
         {() => <ProtectedRoute component={MonitorDetail} />}

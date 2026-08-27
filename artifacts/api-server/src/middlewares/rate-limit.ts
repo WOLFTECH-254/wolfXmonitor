@@ -1,73 +1,85 @@
-import rateLimit from "express-rate-limit";
-import type { Request, Response } from "express";
-import { db } from "@workspace/db";
-import { securityEventsTable } from "@workspace/db";
-import { logger } from "../lib/logger";
-import { sendSecurityAlert } from "../lib/security-mailer";
+import rateLimit, { type Options } from "express-rate-limit";
+import type { Request } from "express";
+import { recordSecurityEvent, clientIp } from "../lib/security-log";
 
-function getIp(req: Request): string {
-  const fwd = req.headers["x-forwarded-for"];
-  if (typeof fwd === "string") return fwd.split(",")[0].trim();
-  return req.ip ?? "unknown";
-}
+/**
+ * Rate limiting.
+ *
+ * These are a safety net against abuse, NOT a throttle for normal use. The SPA
+ * polls a handful of `/api` endpoints every 30s per open tab plus `/api/auth/me`
+ * on every navigation, so the old limits (20 req/min global, 12 auth req/15min
+ * including `/me`) locked out ordinary users and every rejection wrote a
+ * security-events row. Limits below are generous; logging is throttled via
+ * recordSecurityEvent.
+ */
 
-async function logRateLimitEvent(req: Request, detail: string) {
-  const ip = getIp(req);
-  try {
-    await db.insert(securityEventsTable).values({
+// `/api/healthz` and static-ish probes shouldn't burn budget.
+const skipHealth = (req: Request) => req.path === "/healthz" || req.path === "/api/healthz";
+
+const base: Partial<Options> = {
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Default keyGenerator already uses req.ip with IPv6 normalisation and is
+  // proxy-aware via `trust proxy`. Don't override it with a raw XFF read.
+};
+
+/** Coarse per-IP ceiling across everything. */
+export const globalLimiter = rateLimit({
+  ...base,
+  windowMs: 5 * 60_000,
+  max: 1500, // ~5 req/s sustained
+  skip: skipHealth,
+  handler: (req, res) => {
+    recordSecurityEvent({
       type: "rate_limit",
-      ip,
+      ip: clientIp(req),
       path: req.path,
       method: req.method,
       userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
-      details: detail,
+      details: "Global rate limit exceeded (1500 req / 5 min per IP)",
     });
-  } catch (e) {
-    logger.warn({ ip, detail }, "Failed to log rate limit event");
-  }
-}
-
-export const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => getIp(req),
-  handler: async (req, res) => {
-    await logRateLimitEvent(req, "Global rate limit exceeded (300 req/15 min)");
     res.status(429).json({ error: "Too many requests. Please slow down." });
   },
 });
 
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 12,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => getIp(req),
-  handler: async (req, res: Response) => {
-    const ip = getIp(req);
-    await logRateLimitEvent(req, "Auth rate limit hit (12 req/15 min) — brute force suspected");
-    try {
-      await sendSecurityAlert({
-        type: "rate_limit",
-        ip,
-        path: req.path,
-        details: "Auth endpoint rate limit exceeded — possible brute force attack.",
-      });
-    } catch { /* non-critical */ }
-    res.status(429).json({ error: "Too many login attempts. Try again in 15 minutes." });
+/** Per-IP limit for the general API surface. */
+export const apiLimiter = rateLimit({
+  ...base,
+  windowMs: 60_000,
+  max: 300, // comfortably above multi-tab 30s polling
+  skip: skipHealth,
+  handler: (req, res) => {
+    recordSecurityEvent({
+      type: "rate_limit",
+      ip: clientIp(req),
+      path: req.path,
+      method: req.method,
+      userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
+      details: "API rate limit exceeded (300 req/min per IP)",
+    });
+    res.status(429).json({ error: "Too many requests. Please wait a moment." });
   },
 });
 
-export const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => getIp(req),
-  handler: async (req, res: Response) => {
-    await logRateLimitEvent(req, "API rate limit exceeded (120 req/min)");
-    res.status(429).json({ error: "Too many requests. Please wait a moment." });
+/**
+ * Brute-force guard for credential endpoints only. GETs (notably
+ * `/api/auth/me`, hit on every page load) are exempt.
+ */
+export const authLimiter = rateLimit({
+  ...base,
+  windowMs: 10 * 60_000,
+  max: 30, // login attempts / registrations per IP per 10 min
+  skip: (req) => req.method === "GET" || req.method === "OPTIONS",
+  handler: (req, res) => {
+    recordSecurityEvent({
+      type: "rate_limit",
+      ip: clientIp(req),
+      path: req.path,
+      method: req.method,
+      userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
+      details: "Auth rate limit hit (30 attempts / 10 min) — possible brute force",
+      alert: true,
+    });
+    res.status(429).json({ error: "Too many attempts. Try again in a few minutes." });
   },
 });

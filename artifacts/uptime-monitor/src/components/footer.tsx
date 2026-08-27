@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/brand-mark";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Twitter, Instagram, Facebook, Linkedin, Youtube, Zap, Activity, Bell, BarChart2, Globe, ShieldCheck, BookOpen, Mail, FileText, Lock } from "lucide-react";
@@ -65,7 +66,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1 flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-2.5 group w-fit">
               <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center group-hover:border-primary/70 transition-colors">
-                <Zap className="w-4 h-4 text-primary" />
+                <BrandMark className="w-4 h-4 text-primary" />
               </div>
               <span className="font-display text-xl text-foreground">
                 Guardi<span className="text-primary">X</span>

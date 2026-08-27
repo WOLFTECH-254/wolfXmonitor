@@ -825,6 +825,15 @@ export default function Admin() {
     mutationFn: (id: number) => apiFetch(`/api/admin/security/events/${id}/resolve`, { method: "PATCH", headers: { "content-type": "application/json" } }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-security-events"] }); queryClient.invalidateQueries({ queryKey: ["admin-security-stats"] }); },
   });
+  const invalidateSec = () => { queryClient.invalidateQueries({ queryKey: ["admin-security-events"] }); queryClient.invalidateQueries({ queryKey: ["admin-security-stats"] }); };
+  const resolveAllEvents = useMutation({
+    mutationFn: () => apiFetch(`/api/admin/security/events/resolve-all`, { method: "POST", headers: { "content-type": "application/json" } }),
+    onSuccess: () => { invalidateSec(); toast({ title: "All events marked resolved" }); },
+  });
+  const clearEvents = useMutation({
+    mutationFn: (scope: "resolved" | "all") => fetch(`${BASE}/api/admin/security/events?scope=${scope}`, { method: "DELETE", credentials: "include" }).then(r => r.json()),
+    onSuccess: (d: { deleted?: number | null }) => { invalidateSec(); toast({ title: `Cleared ${d?.deleted ?? ""} event${d?.deleted === 1 ? "" : "s"}` }); },
+  });
   const toggleMonitor = useMutation({ mutationFn: (id: number) => apiFetch(`/api/admin/monitors/${id}/toggle`, { method: "PATCH", headers: { "content-type": "application/json" } }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-monitors"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); } });
   const deleteMonitor = useMutation({ mutationFn: (id: number) => fetch(`${BASE}/api/admin/monitors/${id}`, { method: "DELETE", credentials: "include" }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-monitors"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast({ title: "Monitor deleted" }); } });
   const deleteUser = useMutation({ mutationFn: (id: number) => fetch(`${BASE}/api/admin/users/${id}`, { method: "DELETE", credentials: "include" }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast({ title: "User deleted" }); } });
@@ -1076,9 +1085,27 @@ export default function Admin() {
 
             {/* Security Events */}
             <div className="border border-border bg-card rounded overflow-hidden">
-              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
                 <h3 className="font-display text-xl uppercase tracking-wide text-muted-foreground">Security Events</h3>
-                <span className="font-mono text-xs text-muted-foreground">Last 200 events · auto-refreshes</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-muted-foreground hidden sm:inline">Last 200 · auto-refresh</span>
+                  <Button
+                    variant="ghost" size="sm"
+                    className="h-7 px-2 font-mono text-[10px] hover:text-primary"
+                    disabled={resolveAllEvents.isPending || securityEvents.length === 0}
+                    onClick={() => resolveAllEvents.mutate()}
+                  >
+                    Resolve all
+                  </Button>
+                  <Button
+                    variant="ghost" size="sm"
+                    className="h-7 px-2 font-mono text-[10px] hover:text-destructive"
+                    disabled={clearEvents.isPending || securityEvents.length === 0}
+                    onClick={() => { if (confirm("Delete ALL security events? This cannot be undone.")) clearEvents.mutate("all"); }}
+                  >
+                    Clear all
+                  </Button>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs font-mono">

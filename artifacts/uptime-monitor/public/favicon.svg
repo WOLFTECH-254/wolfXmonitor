@@ -1,11 +1,11 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="180" height="180" rx="36" fill="#101312"/>
-  <!-- Lightning bolt (Zap shape) — bold, centered -->
-  <path
-    d="M100 28 L58 96 L84 96 L80 152 L122 84 L96 84 Z"
-    fill="#3aa869"
-    stroke="#3aa869"
-    stroke-width="1.5"
-    stroke-linejoin="round"
-  />
+  <g stroke="#3aa869" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M46 74 L90 46 L134 74"/>
+    <path d="M64 74 H116 V108 H64 Z"/>
+    <path d="M80 92 H100"/>
+    <path d="M70 108 L52 150"/>
+    <path d="M110 108 L128 150"/>
+    <path d="M62 132 H118"/>
+  </g>
 </svg>

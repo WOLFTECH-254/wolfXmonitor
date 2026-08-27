@@ -1,7 +1,8 @@
+import { BrandMark } from "@/components/brand-mark";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Zap, CheckCircle2, ArrowRight, Crown, AlertCircle, Clock } from "lucide-react";
+import { CheckCircle2, ArrowRight, Crown, AlertCircle, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -262,7 +263,7 @@ export default function Upgrade() {
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary" />
+            <BrandMark className="w-4 h-4 text-primary" />
           </div>
           <span className="font-display text-xl tracking-wide">Guardi<span className="text-primary">X</span></span>
         </Link>

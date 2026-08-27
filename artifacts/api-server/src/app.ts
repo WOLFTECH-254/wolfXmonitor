@@ -33,10 +33,11 @@ app.use(
 );
 
 app.set("trust proxy", 1);
+// Reject blocked IPs / scanners before they consume rate-limit budget.
+app.use(ipBlockMiddleware);
 app.use(globalLimiter);
 app.use("/api/auth", authLimiter);
 app.use("/api", apiLimiter);
-app.use(ipBlockMiddleware);
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

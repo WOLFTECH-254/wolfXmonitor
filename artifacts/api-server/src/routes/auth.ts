@@ -1,10 +1,9 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
-import { usersTable, securityEventsTable } from "@workspace/db";
+import { usersTable } from "@workspace/db";
 import { eq, count } from "drizzle-orm";
-import { getClientIp } from "../middlewares/ip-block";
-import { sendSecurityAlert } from "../lib/security-mailer";
+import { recordSecurityEvent, clientIp } from "../lib/security-log";
 import { sendSignupWelcomeEmail } from "../lib/mailer";
 import { logger } from "../lib/logger";
 import {
@@ -28,16 +27,18 @@ function recordFailure(ip: string): void {
     loginFailures.set(ip, { count: 1, firstAt: now });
   } else {
     entry.count += 1;
-    if (entry.count >= BRUTE_THRESHOLD) {
-      const details = `${entry.count} failed login attempts in ${Math.round((now - entry.firstAt) / 60000)} min`;
-      db.insert(securityEventsTable).values({
+    // Fire once, on the transition past the threshold — recordSecurityEvent
+    // additionally coalesces repeats from the same IP.
+    if (entry.count === BRUTE_THRESHOLD) {
+      const details = `${entry.count}+ failed login attempts in ${Math.round((now - entry.firstAt) / 60000)} min`;
+      recordSecurityEvent({
         type: "brute_force",
         ip,
         path: "/api/auth/login",
         method: "POST",
         details,
-      }).catch(() => {});
-      sendSecurityAlert({ type: "brute_force", ip, path: "/api/auth/login", details }).catch(() => {});
+        alert: true,
+      });
       logger.warn({ ip, count: entry.count }, "Brute force detected");
     }
   }
@@ -101,7 +102,7 @@ router.post("/auth/register", async (req, res) => {
 
 router.post("/auth/login", async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
-  const ip = getClientIp(req);
+  const ip = clientIp(req);
 
   if (!email || !password) {
     res.status(400).json({ error: "Email and password are required" });
@@ -110,16 +111,18 @@ router.post("/auth/login", async (req, res) => {
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase().trim()));
 
+  const ua = (req.headers["user-agent"] as string | undefined) ?? null;
+
   if (!user) {
     recordFailure(ip);
-    db.insert(securityEventsTable).values({
+    recordSecurityEvent({
       type: "login_fail",
       ip,
       path: "/api/auth/login",
       method: "POST",
-      userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
+      userAgent: ua,
       details: `Failed login — email not found: ${email.toLowerCase().trim()}`,
-    }).catch(() => {});
+    });
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
@@ -127,14 +130,14 @@ router.post("/auth/login", async (req, res) => {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     recordFailure(ip);
-    db.insert(securityEventsTable).values({
+    recordSecurityEvent({
       type: "login_fail",
       ip,
       path: "/api/auth/login",
       method: "POST",
-      userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
+      userAgent: ua,
       details: `Failed login — wrong password for: ${email.toLowerCase().trim()}`,
-    }).catch(() => {});
+    });
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }

@@ -1,7 +1,10 @@
+import { BrandMark } from "@/components/brand-mark";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { Github, Twitter, Linkedin, Globe, Coffee, ExternalLink, Star, GitFork, Users, BookOpen, Zap, ArrowRight } from "lucide-react";
+import { Github, Twitter, Linkedin, Globe, Coffee, ExternalLink, Star, BookOpen, Zap, ArrowRight } from "lucide-react";
+import { Layout } from "@/components/layout";
+import { useAuth } from "@/hooks/use-auth";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -79,32 +82,10 @@ export default function DeveloperPage() {
   ].filter(Boolean) as { href: string; Icon: React.ComponentType<{ className?: string }>; label: string; cta: string; primary: boolean }[];
 
   const customLinks = profile?.customLinks ?? [];
+  const { user } = useAuth();
 
-  return (
-    <div className="min-h-screen bg-background text-foreground dark">
-      <Helmet>
-        <title>Developer — GuardiX</title>
-        <meta name="description" content={`Meet the developer behind GuardiX — ${displayName}`} />
-      </Helmet>
-
-      {/* Top nav bar */}
-      <nav className="border-b border-border bg-card sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <span className="font-display text-lg tracking-wide text-foreground">
-              Guardi<span className="text-primary">X</span>
-            </span>
-          </Link>
-          <Link href="/" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-            ← Back to app
-          </Link>
-        </div>
-      </nav>
-
-      <main className="max-w-4xl mx-auto px-6 py-16 space-y-16">
+  const body = (
+    <div className="max-w-4xl mx-auto space-y-14">
 
         {/* Hero: avatar + name + bio */}
         {isLoading ? (
@@ -212,7 +193,7 @@ export default function DeveloperPage() {
             <div className="border border-border bg-card rounded p-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-primary" />
+                  <BrandMark className="w-4 h-4 text-primary" />
                 </div>
                 <h2 className="font-display text-2xl uppercase tracking-wide">About GuardiX</h2>
               </div>
@@ -240,9 +221,48 @@ export default function DeveloperPage() {
             </div>
           </>
         )}
-      </main>
+    </div>
+  );
 
-      {/* Footer strip */}
+  const head = (
+    <Helmet>
+      <title>Developer — GuardiX</title>
+      <meta name="description" content={`Meet the developer behind GuardiX — ${displayName}`} />
+    </Helmet>
+  );
+
+  // Logged-in users keep the app chrome (sidebar) so it's clear they're still
+  // signed in; visitors get the standalone marketing shell.
+  if (user) {
+    return (
+      <Layout>
+        {head}
+        <div className="py-2">{body}</div>
+      </Layout>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground dark">
+      {head}
+      <nav className="border-b border-border bg-card sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
+              <BrandMark className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <span className="font-display text-lg tracking-wide text-foreground">
+              Guardi<span className="text-primary">X</span>
+            </span>
+          </Link>
+          <Link href="/signin" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            Sign in →
+          </Link>
+        </div>
+      </nav>
+
+      <main className="px-6 py-16">{body}</main>
+
       <footer className="border-t border-border mt-16 py-8">
         <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-[10px] text-muted-foreground/50 uppercase tracking-widest">

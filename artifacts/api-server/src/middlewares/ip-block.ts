@@ -1,24 +1,28 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "@workspace/db";
-import { blockedIpsTable, securityEventsTable } from "@workspace/db";
+import { blockedIpsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
-import { sendSecurityAlert } from "../lib/security-mailer";
+import { recordSecurityEvent, clientIp } from "../lib/security-log";
 
 let blockedCache = new Set<string>();
 let lastRefresh = 0;
 const CACHE_TTL = 30_000;
 
+/**
+ * Real offensive-security tooling only. Deliberately NOT including generic HTTP
+ * client UAs (python-requests, go-http-client, curl, …) — those are how people
+ * legitimately hit the API and how uptime checkers probe it. Blocking + logging
+ * every one of those was a big source of security-log spam.
+ */
 const KNOWN_SCANNERS = [
   "masscan", "zgrab", "nikto", "sqlmap", "nmap", "dirbuster",
-  "gobuster", "wfuzz", "hydra", "medusa", "shodan", "censys",
-  "python-requests", "go-http-client/1", "scrapy", "ahrefsbot",
-  "semrushbot", "mj12bot", "dotbot", "blexbot",
+  "gobuster", "wfuzz", "hydra", "medusa", "wpscan", "acunetix",
+  "nessus", "openvas", "metasploit",
 ];
 
+/** @deprecated use clientIp from lib/security-log */
 export function getClientIp(req: Request): string {
-  const fwd = req.headers["x-forwarded-for"];
-  if (typeof fwd === "string") return fwd.split(",")[0].trim();
-  return req.ip ?? "unknown";
+  return clientIp(req);
 }
 
 async function refreshCache(): Promise<void> {
@@ -40,40 +44,39 @@ export function invalidateIpCache(): void {
 export async function ipBlockMiddleware(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   try {
     await refreshCache();
-    const ip = getClientIp(req);
+    const ip = clientIp(req);
 
     if (blockedCache.has(ip)) {
-      db.insert(securityEventsTable).values({
+      recordSecurityEvent({
         type: "blocked_ip",
         ip,
         path: req.path,
         method: req.method,
         userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
         details: "Blocked IP attempted access",
-      }).catch(() => {});
+      });
       res.status(403).json({ error: "Access denied." });
       return;
     }
 
     const ua = ((req.headers["user-agent"] as string | undefined) ?? "").toLowerCase();
-    const isScanner = KNOWN_SCANNERS.some((s) => ua.includes(s));
+    const scanner = KNOWN_SCANNERS.find((s) => ua.includes(s));
 
-    if (isScanner) {
-      const details = `Suspicious user-agent: ${req.headers["user-agent"] ?? "(none)"}`;
-      db.insert(securityEventsTable).values({
+    if (scanner) {
+      recordSecurityEvent({
         type: "suspicious_agent",
         ip,
         path: req.path,
         method: req.method,
         userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
-        details,
-      }).catch(() => {});
-      sendSecurityAlert({ type: "suspicious_agent", ip, path: req.path, details }).catch(() => {});
-      logger.warn({ ip, ua }, "Suspicious user-agent detected");
+        details: `Security scanner user-agent detected: ${scanner}`,
+        alert: true,
+      });
+      logger.warn({ ip, scanner }, "Security scanner user-agent detected");
       res.status(403).json({ error: "Access denied." });
       return;
     }

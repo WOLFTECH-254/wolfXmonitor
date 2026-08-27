@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { securityEventsTable, blockedIpsTable } from "@workspace/db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, lt } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/admin";
 import { invalidateIpCache } from "../middlewares/ip-block";
 
@@ -23,6 +23,37 @@ router.patch("/admin/security/events/:id/resolve", requireAdmin, async (req, res
     .set({ resolved: true })
     .where(eq(securityEventsTable.id, id));
   res.json({ ok: true });
+});
+
+/** Mark every event resolved. */
+router.post("/admin/security/events/resolve-all", requireAdmin, async (_req, res) => {
+  await db.update(securityEventsTable).set({ resolved: true });
+  res.json({ ok: true });
+});
+
+/**
+ * Bulk delete. `?scope=resolved` (default) clears resolved events;
+ * `?scope=all` clears everything; `?olderThanDays=N` clears events older than N days.
+ */
+router.delete("/admin/security/events", requireAdmin, async (req, res) => {
+  const scope = String(req.query.scope ?? "resolved");
+  const olderThanDays = Number(req.query.olderThanDays);
+
+  if (Number.isFinite(olderThanDays) && olderThanDays > 0) {
+    const cutoff = new Date(Date.now() - olderThanDays * 86_400_000);
+    const r = await db.delete(securityEventsTable).where(lt(securityEventsTable.createdAt, cutoff));
+    res.json({ ok: true, deleted: r.rowCount ?? null });
+    return;
+  }
+
+  if (scope === "all") {
+    const r = await db.delete(securityEventsTable);
+    res.json({ ok: true, deleted: r.rowCount ?? null });
+    return;
+  }
+
+  const r = await db.delete(securityEventsTable).where(eq(securityEventsTable.resolved, true));
+  res.json({ ok: true, deleted: r.rowCount ?? null });
 });
 
 router.get("/admin/security/blocked-ips", requireAdmin, async (_req, res) => {

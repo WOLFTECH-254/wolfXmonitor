@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { BrandMark } from "@/components/brand-mark";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -214,7 +215,7 @@ export default function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background">
         <Link href="/" className="flex items-center gap-3 group">
           <div className="w-8 h-8 rounded-md bg-primary/10 border border-primary/30 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary" />
+            <BrandMark className="w-4 h-4 text-primary" />
           </div>
           <span className="font-display text-xl text-foreground">
             Guardi<span className="text-primary">X</span>
