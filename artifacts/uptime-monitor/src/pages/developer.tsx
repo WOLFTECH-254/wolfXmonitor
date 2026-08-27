@@ -228,6 +228,7 @@ export default function DeveloperPage() {
     <Helmet>
       <title>Developer — GuardiX</title>
       <meta name="description" content={`Meet the developer behind GuardiX — ${displayName}`} />
+      <link rel="canonical" href="https://guardix.wolvarex.com/developer" />
     </Helmet>
   );
 

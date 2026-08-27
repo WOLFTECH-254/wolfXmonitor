@@ -205,7 +205,8 @@ export default function Landing() {
         <meta name="description" content={ogMeta?.ogDescription ?? "Real-time uptime monitoring with instant alerts."} />
         <meta property="og:title"       content={ogMeta?.ogTitle ?? "GuardiX — Know When Your Sites Go Down"} />
         <meta property="og:description" content={ogMeta?.ogDescription ?? "Real-time uptime monitoring with instant alerts."} />
-        <meta property="og:url"         content={ogMeta?.ogUrl ?? "https://monitor.xwolf.space"} />
+        <meta property="og:url"         content={ogMeta?.ogUrl ?? "https://guardix.wolvarex.com/"} />
+        <link rel="canonical" href="https://guardix.wolvarex.com/" />
         {ogMeta?.ogImage && <meta property="og:image"  content={ogMeta.ogImage} />}
         {ogMeta?.ogImage && <meta name="twitter:card"  content="summary_large_image" />}
         {ogMeta?.ogImage && <meta name="twitter:image" content={ogMeta.ogImage} />}

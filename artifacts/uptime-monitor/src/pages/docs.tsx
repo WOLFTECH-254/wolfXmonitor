@@ -129,6 +129,7 @@ export default function Docs() {
       <Helmet>
         <title>Documentation — GuardiX</title>
         <meta name="description" content="Complete documentation for GuardiX — setup, monitoring, alerts, API reference, and more." />
+        <link rel="canonical" href="https://guardix.wolvarex.com/docs" />
       </Helmet>
 
       {/* Top bar */}

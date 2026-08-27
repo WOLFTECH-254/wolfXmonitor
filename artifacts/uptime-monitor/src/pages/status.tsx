@@ -41,6 +41,7 @@ export default function StatusPage() {
       <title>System Status — GuardiX</title>
       <meta name="description" content="Live status of all monitored services. Check uptime, response times, and recent incidents." />
       <meta property="og:title" content="System Status — GuardiX" />
+      <link rel="canonical" href="https://guardix.wolvarex.com/status" />
     </Helmet>
   );
 

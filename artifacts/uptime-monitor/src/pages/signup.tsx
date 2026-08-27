@@ -52,8 +52,9 @@ export default function SignUp() {
     <div className="min-h-screen bg-background text-foreground dark overflow-hidden">
       <Helmet>
         <title>Get Started Free — GuardiX</title>
-        <meta name="description" content="Create your free GuardiX account. Monitor up to 5 sites with instant downtime alerts." />
+        <meta name="description" content="Create your free GuardiX account and get instant alerts the moment your sites go down." />
         <meta property="og:title" content="Get Started Free — GuardiX" />
+        <link rel="canonical" href="https://guardix.wolvarex.com/signup" />
       </Helmet>
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 border-b border-border bg-background">
         <Link href="/" className="flex items-center gap-2.5 group">

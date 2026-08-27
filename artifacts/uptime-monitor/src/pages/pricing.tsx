@@ -55,6 +55,7 @@ export default function PricingPage() {
       <title>Pricing — GuardiX</title>
       <meta name="description" content="GuardiX plans — from a free tier to unlimited monitoring with 15-second checks." />
       <meta property="og:title" content="Pricing — GuardiX" />
+      <link rel="canonical" href="https://guardix.wolvarex.com/pricing" />
     </Helmet>
   );
 

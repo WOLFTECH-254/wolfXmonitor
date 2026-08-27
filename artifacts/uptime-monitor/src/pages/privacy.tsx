@@ -30,6 +30,7 @@ export default function Privacy() {
       <Helmet>
         <title>Privacy Policy — GuardiX</title>
         <meta name="description" content="Privacy Policy for GuardiX — what data we collect, how we use it, and your rights." />
+        <link rel="canonical" href="https://guardix.wolvarex.com/privacy" />
       </Helmet>
 
       {/* Top bar */}

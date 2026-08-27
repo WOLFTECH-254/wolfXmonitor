@@ -1,0 +1,17 @@
+# GuardiX — https://guardix.wolvarex.com
+User-agent: *
+Allow: /
+
+# Application area — no SEO value, keep out of the index
+Disallow: /dashboard
+Disallow: /monitoring
+Disallow: /monitors/
+Disallow: /admin
+Disallow: /settings
+Disallow: /workspace
+Disallow: /upgrade
+Disallow: /incidents
+Disallow: /profile
+Disallow: /signin
+
+Sitemap: https://guardix.wolvarex.com/sitemap.xml
