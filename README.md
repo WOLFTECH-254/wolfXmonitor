@@ -21,17 +21,6 @@ Know the instant your sites go down — before your users do.
 
 ---
 
-<table>
-  <tr>
-    <td align="center"><img src="screenshots/new-screenshot.jpg" alt="Dashboard" width="340"/><br/><sub><b>Dashboard</b></sub></td>
-    <td align="center"><img src="screenshots/dashboard-screenshot.jpg" alt="Monitor Detail" width="340"/><br/><sub><b>Monitor Detail</b></sub></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="screenshots/screenshot-3.jpg" alt="Admin Panel" width="340"/><br/><sub><b>Admin Panel</b></sub></td>
-    <td align="center"><img src="screenshots/screenshot-4.jpg" alt="Mobile View" width="340"/><br/><sub><b>Mobile View</b></sub></td>
-  </tr>
-</table>
-
 ---
 
 ## What is wolfXmonitor?
