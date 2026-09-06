@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="artifacts/uptime-monitor/public/og-image.png" alt="wolfXmonitor" width="550"/>
+<img src="artifacts/uptime-monitor/public/og-image.png" alt="Guardix" width="550"/>
 
-# wolfXmonitor
+# Guardix
 
 **Real-time uptime monitoring for developers and teams.**  
 Know the instant your sites go down — before your users do.
@@ -11,11 +11,11 @@ Know the instant your sites go down — before your users do.
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![Telegram](https://img.shields.io/badge/Telegram-Alerts-2AABEE?logo=telegram&logoColor=white)](https://t.me/wolfXmonitor_bot)
+[![Telegram](https://img.shields.io/badge/Telegram-Alerts-2AABEE?logo=telegram&logoColor=white)](https://t.me/Guardix_bot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e.svg)](LICENSE)
 [![Made in Kenya](https://img.shields.io/badge/Made%20in-Kenya%20🇰🇪-006600)](https://xcasper.space)
 
-[Live Demo](https://monitor.xwolf.space) · [Documentation](https://monitor.xwolf.space/docs) · [Report Bug](https://github.com/WOLFTECH-254/wolfXmonitor/issues) · [Request Feature](https://github.com/WOLFTECH-254/wolfXmonitor/issues)
+[Live Demo](https://guardix.wolvarex.com) · [Documentation](https://guardix.wolvarex.com/docs) · [Report Bug](https://github.com/WOLFTECH-254/guardix/issues) · [Request Feature](https://github.com/WOLFTECH-254/guardix/issues)
 
 </div>
 
@@ -23,9 +23,9 @@ Know the instant your sites go down — before your users do.
 
 ---
 
-## What is wolfXmonitor?
+## What is Guardix?
 
-wolfXmonitor is a full-stack **SaaS uptime monitoring platform** that pings your websites and APIs every minute and alerts you instantly — by **email, Telegram, and WhatsApp** — the moment they go down. Built with a dark green aesthetic, it includes multi-user support, Free and Pro subscription tiers via Paystack, Brevo email alerts, a public status page, and a full admin control panel.
+Guardix is a full-stack **SaaS uptime monitoring platform** that pings your websites and APIs every minute and alerts you instantly — by **email, Telegram, and WhatsApp** — the moment they go down. Built with a dark green aesthetic, it includes multi-user support, Free and Pro subscription tiers via Paystack, Brevo email alerts, a public status page, and a full admin control panel.
 
 Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 
@@ -42,7 +42,7 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 
 ### Alerts & Integrations
 - **Email alerts via Brevo** — instant notification when a site goes down or recovers
-- **Telegram alerts** — real-time incident messages via [@wolfXmonitor_bot](https://t.me/wolfXmonitor_bot)
+- **Telegram alerts** — real-time incident messages via [@Guardix_bot](https://t.me/Guardix_bot)
 - **WhatsApp alerts** — incident notifications via Twilio WhatsApp API
 - **Discord alerts** — rich color-coded embeds via Discord webhook (no bot invite needed)
 - **Multi-channel delivery** — email + Telegram + WhatsApp + Discord fire simultaneously on every incident
@@ -55,7 +55,7 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 - Users connect Discord by pasting a webhook URL from any channel they own
 - Admin configures the Telegram bot token and Twilio credentials once in the Admin Panel
 - All channel settings are per-user — each user controls their own alert destinations
-- Full docs at [monitor.xwolf.space/docs](https://monitor.xwolf.space/docs)
+- Full docs at [guardix.wolvarex.com/docs](https://guardix.wolvarex.com/docs)
 
 ### Multi-user & Billing
 - **Free plan** — up to N monitors (admin-configurable)
@@ -74,7 +74,7 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 - Country stats — see which countries your users are from
 
 ### Documentation
-- **Full docs site** at [monitor.xwolf.space/docs](https://monitor.xwolf.space/docs) — accessible without logging in
+- **Full docs site** at [guardix.wolvarex.com/docs](https://guardix.wolvarex.com/docs) — accessible without logging in
 - Covers getting started, monitors, all alert channels, plans, status page, admin setup, and API reference
 - Sticky table of contents, mobile-friendly, matches the dark green theme
 
@@ -107,7 +107,7 @@ Over **100+ wolves** monitoring endpoints from **20+ countries** worldwide.
 ## Project Structure
 
 ```
-wolfxmonitor/
+guardix/
 ├── artifacts/
 │   ├── api-server/          # Express REST API
 │   │   └── src/
@@ -140,8 +140,8 @@ wolfxmonitor/
 
 ```bash
 # Clone the repository
-git clone https://github.com/WOLFTECH-254/wolfXmonitor.git
-cd wolfxmonitor
+git clone https://github.com/WOLFTECH-254/guardix.git
+cd guardix
 
 # Install all workspace dependencies
 pnpm install
@@ -197,7 +197,7 @@ pnpm --filter @workspace/uptime-monitor run dev
 No bot token or admin config needed — Discord uses per-user webhooks:
 
 1. User opens Discord → goes to any channel they own → **Edit Channel → Integrations → Webhooks → New Webhook**
-2. Names it `wolfXmonitor`, clicks **Copy Webhook URL**
+2. Names it `Guardix`, clicks **Copy Webhook URL**
 3. Pastes the URL in **Integrations & API → Discord**, clicks Save
 4. Clicks **Send test message** — a green embed appears in the channel instantly
 
@@ -231,8 +231,8 @@ No bot token or admin config needed — Discord uses per-user webhooks:
 
 ```bash
 # On your VPS
-git clone https://github.com/WOLFTECH-254/wolfXmonitor.git /var/www/wolfxmonitor
-cd /var/www/wolfxmonitor
+git clone https://github.com/WOLFTECH-254/guardix.git /var/www/guardix
+cd /var/www/guardix
 pnpm install
 pnpm --filter @workspace/uptime-monitor run build
 
@@ -251,9 +251,9 @@ pm2 save
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com;
+    server_name guardix.wolvarex.com;
 
-    root /var/www/wolfxmonitor/artifacts/uptime-monitor/dist;
+    root /var/www/guardix/artifacts/uptime-monitor/dist;
     index index.html;
 
     location / {
@@ -304,7 +304,7 @@ git push origin feature/your-feature
 
 ## License
 
-MIT © [WOLF TECH · Silent Wolf](https://xcasper.space)
+MIT © [WOLF TECH · Silent Wolf](https://wolvarex.com)
 
 ---
 
